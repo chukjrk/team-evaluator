@@ -1,11 +1,24 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { SKILL_LABELS, type SkillKey } from "@/lib/constants/skills";
+import { SKILL_LABELS, SKILLS_TAXONOMY, type SkillKey } from "@/lib/constants/skills";
 import type { MemberWithProfile } from "@/lib/types/profile";
 
 interface CofounderCardProps {
   member: MemberWithProfile;
+}
+
+/** Category-based tag style: light fill, darker border of same hue */
+function skillTagStyle(skill: SkillKey): { background: string; border: string; color: string } {
+  if ((SKILLS_TAXONOMY.technical as readonly string[]).includes(skill)) {
+    // Blue family
+    return { background: "#dbeafe", border: "1px solid #3b82f6", color: "#1e3a8a" };
+  }
+  if ((SKILLS_TAXONOMY.business as readonly string[]).includes(skill)) {
+    // Violet family
+    return { background: "#ede9fe", border: "1px solid #7c3aed", color: "#2e1065" };
+  }
+  // Domain — emerald/teal family
+  return { background: "#d1fae5", border: "1px solid #059669", color: "#064e3b" };
 }
 
 export function CofounderCard({ member }: CofounderCardProps) {
@@ -44,14 +57,21 @@ export function CofounderCard({ member }: CofounderCardProps) {
       {skills.length > 0 ? (
         <div className="flex flex-wrap gap-1">
           {visibleSkills.map((skill) => (
-            <Badge key={skill} variant="secondary" className="px-1.5 py-0 text-[10px]">
+            <span
+              key={skill}
+              className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+              style={skillTagStyle(skill)}
+            >
               {SKILL_LABELS[skill]}
-            </Badge>
+            </span>
           ))}
           {overflow > 0 && (
-            <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+            <span
+              className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+              style={{ background: "#f4f4f5", border: "1px solid #a1a1aa", color: "#52525b" }}
+            >
               +{overflow} more
-            </Badge>
+            </span>
           )}
         </div>
       ) : (

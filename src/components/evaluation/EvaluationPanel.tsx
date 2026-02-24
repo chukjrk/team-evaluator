@@ -99,9 +99,12 @@ export function EvaluationPanel({
             </h2>
             <div className="mt-1 flex items-center gap-2">
               <span className="text-xs text-zinc-400">{idea.submitter.name}</span>
-              <Badge variant="outline" className="h-4 px-1.5 text-[10px]">
+              <span
+                className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+                style={{ background: "#fef3c7", border: "1px solid #f59e0b", color: "#92400e" }}
+              >
                 {INDUSTRY_LABELS[idea.industry as IndustryKey] ?? idea.industry}
-              </Badge>
+              </span>
             </div>
           </div>
           {isOwner && (

@@ -7,12 +7,17 @@ import {
   type SkillKey,
   type SkillCategory,
 } from "@/lib/constants/skills";
-import { cn } from "@/lib/utils";
 import type { MemberWithProfile } from "@/lib/types/profile";
 
 interface SkillGridProps {
   members: MemberWithProfile[];
 }
+
+const CATEGORY_COLORS: Record<SkillCategory, { filled: string; empty: string }> = {
+  technical: { filled: "#3b82f6", empty: "#dbeafe" }, // blue
+  business:  { filled: "#7c3aed", empty: "#ede9fe" }, // violet
+  domain:    { filled: "#059669", empty: "#d1fae5" }, // emerald
+};
 
 export function SkillGrid({ members: memberList }: SkillGridProps) {
   const teamSkills = new Set(
@@ -27,6 +32,7 @@ export function SkillGrid({ members: memberList }: SkillGridProps) {
         const skills = SKILLS_TAXONOMY[category] as readonly string[];
         const covered = skills.filter((s) => teamSkills.has(s as SkillKey)).length;
         const pct = Math.round((covered / skills.length) * 100);
+        const colors = CATEGORY_COLORS[category];
 
         return (
           <div key={category}>
@@ -43,10 +49,8 @@ export function SkillGrid({ members: memberList }: SkillGridProps) {
                   <div
                     key={skill}
                     title={SKILL_LABELS[skill as SkillKey]}
-                    className={cn(
-                      "h-2.5 flex-1 rounded-sm min-w-[10px]",
-                      has ? "bg-zinc-800" : "bg-zinc-200"
-                    )}
+                    className="h-2.5 flex-1 rounded-sm min-w-[10px] transition-colors"
+                    style={{ background: has ? colors.filled : colors.empty }}
                   />
                 );
               })}
