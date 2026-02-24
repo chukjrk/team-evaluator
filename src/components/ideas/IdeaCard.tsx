@@ -1,9 +1,8 @@
 "use client";
 
 import { Lock, Globe } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { INDUSTRY_LABELS } from "@/lib/constants/industries";
-import { cn, formatScore, scoreBgColor } from "@/lib/utils";
+import { cn, formatScore, scoreBarGradient } from "@/lib/utils";
 import type { IdeaData } from "@/lib/types/idea";
 import type { IndustryKey } from "@/lib/constants/industries";
 
@@ -11,6 +10,12 @@ interface IdeaCardProps {
   idea: IdeaData;
   isSelected: boolean;
   onSelect: () => void;
+}
+
+function scoreCircleBorder(score: number) {
+  if (score >= 75) return "#10b981"; // emerald-500
+  if (score >= 50) return "#f59e0b"; // amber-500
+  return "#f43f5e"; // rose-500
 }
 
 export function IdeaCard({ idea, isSelected, onSelect }: IdeaCardProps) {
@@ -41,26 +46,30 @@ export function IdeaCard({ idea, isSelected, onSelect }: IdeaCardProps) {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-zinc-400">{idea.submitter.name}</span>
-            <Badge variant="outline" className="h-4 px-1.5 text-[10px]">
+            {/* Industry tag — warm amber tone */}
+            <span
+              className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+              style={{
+                background: "#fef3c7",
+                border: "1px solid #f59e0b",
+                color: "#92400e",
+              }}
+            >
               {INDUSTRY_LABELS[idea.industry as IndustryKey] ?? idea.industry}
-            </Badge>
+            </span>
           </div>
         </div>
 
         {/* Score circle */}
         <div className="shrink-0 flex flex-col items-center">
           {hasScore ? (
-            <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100">
-              <div
-                className={cn(
-                  "absolute inset-0 rounded-full border-2",
-                  score >= 75
-                    ? "border-green-500"
-                    : score >= 50
-                    ? "border-yellow-500"
-                    : "border-red-400"
-                )}
-              />
+            <div
+              className="relative flex h-10 w-10 items-center justify-center rounded-full"
+              style={{
+                background: "white",
+                boxShadow: `0 0 0 2.5px ${scoreCircleBorder(score)}`,
+              }}
+            >
               <span className="text-xs font-bold text-zinc-800">
                 {formatScore(score)}
               </span>
