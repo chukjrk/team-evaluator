@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────
+// WORKSPACE
+// ─────────────────────────────────────────────────────────────
+model Workspace {
+  id          String   @id @default(cuid())
+  name        String
+  inviteToken String   @unique @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members WorkspaceMember[]
+  ideas   Idea[]
+}
+
+// ─────────────────────────────────────────────────────────────
+// WORKSPACE MEMBER — no role distinction, all members equal
+// ─────────────────────────────────────────────────────────────
+model WorkspaceMember {
+  id          String   @id @default(cuid())
+  clerkUserId String
+  email       String
+  name        String   @default("")
+  joinedAt    DateTime @default(now())
+
+  workspaceId    String
+  workspace      Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  profile        CofounderProfile?
+  submittedIdeas Idea[]
+
+  @@unique([workspaceId, clerkUserId])
+  @@index([clerkUserId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// COFOUNDER PROFILE
+// ─────────────────────────────────────────────────────────────
+model CofounderProfile {
+  id         String   @id @default(cuid())
+  background String   @default("") @db.Text
+  skills     String[] // keys from the taxonomy constant
+  updatedAt  DateTime @updatedAt
+
+  memberId       String           @unique
+  member         WorkspaceMember  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  networkEntries NetworkEntry[]
+}
+
+// ─────────────────────────────────────────────────────────────
+// NETWORK ENTRIES
+// ─────────────────────────────────────────────────────────────
+model NetworkEntry {
+  id                 String             @id @default(cuid())
+  industry           String             // key from INDUSTRIES constant
+  estimatedContacts  Int
+  notableRoles       String[]           // e.g. ["CTOs", "VCs"]
+  connectionStrength ConnectionStrength
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  profileId String
+  profile   CofounderProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+enum ConnectionStrength {
+  WARM
+  MODERATE
+  COLD
+}
+
+// ─────────────────────────────────────────────────────────────
+// IDEAS — all treated as preliminary
+// ─────────────────────────────────────────────────────────────
+model Idea {
+  id               String     @id @default(cuid())
+  title            String
+  problemStatement String     @db.Text
+  targetCustomer   String     @db.Text
+  industry         String     // key from INDUSTRIES constant
+  notes            String?    @db.Text
+  visibility       Visibility @default(PRIVATE)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  workspaceId String
+  workspace   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  submitterId String
+  submitter   WorkspaceMember @relation(fields: [submitterId], references: [id])
+  score       IdeaScore?
+
+  @@index([workspaceId, visibility])
+  @@index([submitterId])
+}
+
+enum Visibility {
+  PRIVATE
+  WORKSPACE
+  SHARED
+}
+
+// ─────────────────────────────────────────────────────────────
+// IDEA SCORES (cached, regenerated on demand)
+// ─────────────────────────────────────────────────────────────
+model IdeaScore {
+  id                  String   @id @default(cuid())
+  teamSkillScore      Float
+  networkScore        Float
+  ideaQualityScore    Float
+  teamIdeaFitScore    Float
+  compositeScore      Float
+  timeToFirstCustomer String
+  aiNarrative         String   @db.Text
+  aiReasoning         Json
+  generatedAt         DateTime @default(now())
+  modelVersion        String   @default("claude-sonnet-4-6")
+
+  ideaId String @unique
+  idea   Idea   @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+}
