@@ -7,10 +7,10 @@ import { RightPanel } from "./RightPanel";
 import { useIdeas } from "@/hooks/useIdeas";
 import type { IdeaData } from "@/lib/types/idea";
 
-const MIN_LEFT = 200;
-const MAX_LEFT = 440;
-const MIN_RIGHT = 300;
-const MAX_RIGHT = 580;
+const MIN_LEFT = 260;
+const MAX_LEFT = 560;
+const MIN_RIGHT = 360;
+const MAX_RIGHT = 720;
 
 interface AppShellProps {
   currentMemberId: string;
@@ -20,8 +20,8 @@ export function AppShell({ currentMemberId }: AppShellProps) {
   const [selectedIdeaId, setSelectedIdeaId] = useState<string | null>(null);
   const { ideas, mutate } = useIdeas();
 
-  const [leftWidth, setLeftWidth] = useState(280);
-  const [rightWidth, setRightWidth] = useState(420);
+  const [leftWidth, setLeftWidth] = useState(360);
+  const [rightWidth, setRightWidth] = useState(500);
 
   // Refs for drag state — using ref so event listeners don't become stale
   const leftDrag = useRef<{ startX: number; startWidth: number } | null>(null);

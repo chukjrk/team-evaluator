@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScoreBreakdown } from "./ScoreBreakdown";
+import { IdeaSkillCoverage } from "./IdeaSkillCoverage";
 import { TimeEstimateChip } from "./TimeEstimateChip";
 import { AIInsightCard } from "./AIInsightCard";
 import { ScoreLoadingState } from "./ScoreLoadingState";
@@ -156,6 +157,10 @@ export function EvaluationPanel({
               teamIdeaFitScore={idea.score.teamIdeaFitScore}
               compositeScore={idea.score.compositeScore}
             />
+
+            {reasoning?.requiredSkills && reasoning.requiredSkills.length > 0 && (
+              <IdeaSkillCoverage requiredSkills={reasoning.requiredSkills} />
+            )}
 
             <TimeEstimateChip
               timeToFirstCustomer={idea.score.timeToFirstCustomer}

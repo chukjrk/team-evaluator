@@ -14,6 +14,12 @@ You will receive two separate inputs:
 1. TEAM CONTEXT — a JSON object describing the founding team: their skills, backgrounds, and network entries (industry contacts with connection strength).
 2. IDEA — a JSON object describing the startup idea to evaluate.
 
+The following is the complete skill taxonomy. Use ONLY these exact key strings when populating requiredSkills:
+
+TECHNICAL: full-stack-dev, mobile-dev, ml-ai, data-engineering, data-science-analytics, devops-infra, product-design-ux, cybersecurity, blockchain-web3, ar-vr-spatial, embedded-iot
+BUSINESS: sales, marketing-growth, finance-accounting, operations, product-management, fundraising-ir, legal-compliance, customer-success, hr-people-ops, supply-chain-mgmt, partnerships-bizdev, brand-comms
+DOMAIN: healthcare-medtech, fintech-banking, edtech, enterprise-saas, consumer-apps, biotech-pharma, workforce-hrtech, future-of-work, food-beverage, foodtech-restauranttech, agriculture-agtech, hardware-manufacturing, real-estate, construction-proptech, climate-energy, retail-ecommerce, logistics-supply-chain, automotive-mobility, travel-hospitality, media-entertainment, sports-fitness-wellness, social-impact-nonprofit, government-civictech
+
 Evaluate and return ONLY valid JSON with this exact schema:
 {
   "ideaQualityScore": <integer 0-100>,
@@ -37,9 +43,12 @@ Evaluate and return ONLY valid JSON with this exact schema:
       "optimistic": "<string>",
       "realistic": "<string>",
       "keyRisks": ["<risk string>"]
-    }
+    },
+    "requiredSkills": ["<exact skill key from taxonomy above>"]
   }
 }
+
+requiredSkills must list every skill key from the taxonomy that this idea genuinely needs to succeed — typically 4 to 10 keys spanning technical, business, and domain categories. Only use exact key strings from the taxonomy above.
 
 Do not include any text outside the JSON object. Do not wrap in markdown code fences.
 All ideas should be treated as early-stage/preliminary regardless of description depth.`;

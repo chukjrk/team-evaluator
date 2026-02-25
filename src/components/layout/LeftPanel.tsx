@@ -7,19 +7,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CofounderCard } from "@/components/team/CofounderCard";
-import { SkillGrid } from "@/components/team/SkillGrid";
 import { InviteBanner } from "@/components/shared/InviteBanner";
-import { computeTeamSkillScore } from "@/lib/scoring/team-skill";
-import { formatScore, scoreColor } from "@/lib/utils";
 import { useMembers, useWorkspaceInfo } from "@/hooks/useWorkspace";
-import { cn } from "@/lib/utils";
 
 export function LeftPanel() {
   const { members, isLoading } = useMembers();
   const { workspace } = useWorkspaceInfo();
-
-  const teamScore =
-    members.length > 0 ? computeTeamSkillScore(members) : null;
 
   return (
     <div className="flex h-full flex-col border-r border-zinc-200 bg-white">
@@ -42,18 +35,6 @@ export function LeftPanel() {
 
       <ScrollArea className="flex-1">
         <div className="space-y-4 p-4">
-          {/* Team score */}
-          {teamScore !== null && (
-            <div className="rounded-lg bg-zinc-50 px-4 py-3 text-center">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
-                Team Skill Strength
-              </p>
-              <p className={cn("text-3xl font-bold mt-0.5", scoreColor(teamScore))}>
-                {formatScore(teamScore)}
-              </p>
-            </div>
-          )}
-
           {/* Cofounders */}
           <div>
             <p className="mb-2 text-xs font-medium text-zinc-400">Team</p>
@@ -73,18 +54,6 @@ export function LeftPanel() {
               </div>
             )}
           </div>
-
-          <Separator />
-
-          {/* Skill coverage heatmap */}
-          {members.length > 0 && (
-            <div>
-              <p className="mb-2 text-xs font-medium text-zinc-400">
-                Skill Coverage
-              </p>
-              <SkillGrid members={members} />
-            </div>
-          )}
 
           <Separator />
 
