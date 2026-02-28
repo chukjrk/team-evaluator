@@ -16,6 +16,7 @@ export interface AIScoreResult {
       gaps: string[];
       notes: string;
     };
+    requiredSkills: string[];
     timeEstimate: {
       optimistic: string;
       realistic: string;
