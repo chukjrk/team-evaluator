@@ -41,6 +41,12 @@ export async function computeFullScore(
     compositeScore,
     timeToFirstCustomer: aiResult.timeToFirstCustomer,
     aiNarrative: aiResult.narrative,
-    aiReasoning: aiResult.reasoning,
+    // Embed top-level AI verdict fields into the reasoning JSON blob so they
+    // persist without requiring new DB columns.
+    aiReasoning: {
+      ...aiResult.reasoning,
+      recommendation: aiResult.recommendation,
+      overallViabilityScore: aiResult.overallViabilityScore,
+    },
   };
 }
