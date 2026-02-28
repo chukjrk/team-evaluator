@@ -19,7 +19,7 @@ import { AIInsightCard } from "./AIInsightCard";
 import { ScoreLoadingState } from "./ScoreLoadingState";
 import { INDUSTRY_LABELS } from "@/lib/constants/industries";
 import type { IdeaData, Visibility } from "@/lib/types/idea";
-import type { AIScoreResult } from "@/lib/types/scoring";
+import type { StoredReasoning, Recommendation } from "@/lib/types/scoring";
 import type { IndustryKey } from "@/lib/constants/industries";
 
 interface EvaluationPanelProps {
@@ -87,7 +87,37 @@ export function EvaluationPanel({
     }
   }
 
-  const reasoning = idea.score?.aiReasoning as AIScoreResult["reasoning"] | undefined;
+  const reasoning = idea.score?.aiReasoning as StoredReasoning | undefined;
+
+  const RECOMMENDATION_CONFIG: Record<
+    Recommendation,
+    { label: string; bg: string; text: string; border: string }
+  > = {
+    pass: {
+      label: "Pass",
+      bg: "#fff1f2",
+      text: "#be123c",
+      border: "#fda4af",
+    },
+    watch: {
+      label: "Watch",
+      bg: "#fffbeb",
+      text: "#92400e",
+      border: "#fcd34d",
+    },
+    "conditional-proceed": {
+      label: "Conditional Proceed",
+      bg: "#eff6ff",
+      text: "#1d4ed8",
+      border: "#93c5fd",
+    },
+    proceed: {
+      label: "Proceed",
+      bg: "#f0fdf4",
+      text: "#15803d",
+      border: "#86efac",
+    },
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -158,6 +188,26 @@ export function EvaluationPanel({
               compositeScore={idea.score.compositeScore}
             />
 
+            {reasoning?.recommendation && (() => {
+              const rec = RECOMMENDATION_CONFIG[reasoning.recommendation];
+              return rec ? (
+                <div
+                  className="flex items-center justify-between rounded-lg border px-4 py-2.5"
+                  style={{ background: rec.bg, borderColor: rec.border }}
+                >
+                  <span className="text-xs font-medium" style={{ color: rec.text }}>
+                    VC Verdict
+                  </span>
+                  <span
+                    className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                    style={{ background: rec.border, color: rec.text }}
+                  >
+                    {rec.label}
+                  </span>
+                </div>
+              ) : null;
+            })()}
+
             {reasoning?.requiredSkills && reasoning.requiredSkills.length > 0 && (
               <IdeaSkillCoverage requiredSkills={reasoning.requiredSkills} />
             )}
@@ -166,6 +216,7 @@ export function EvaluationPanel({
               timeToFirstCustomer={idea.score.timeToFirstCustomer}
               optimistic={reasoning?.timeEstimate?.optimistic}
               realistic={reasoning?.timeEstimate?.realistic}
+              pessimistic={reasoning?.timeEstimate?.pessimistic}
             />
 
             {reasoning && (

@@ -8,11 +8,17 @@ import { clamp } from "@/lib/utils";
 // System prompt — static across all evaluations, marked for caching.
 // The model receives team context first (also cached), then the idea.
 // ---------------------------------------------------------------------------
-const SYSTEM_PROMPT = `You are a startup evaluator with expertise in venture capital, go-to-market strategy, and team assessment.
+const SYSTEM_PROMPT = `You are a startup evaluator trained to think like a skeptical but fair Series A venture capitalist. Your job is NOT to encourage founders — it is to surface the hardest, most realistic challenges this startup faces so they can address them or fail fast.
 
 You will receive two separate inputs:
 1. TEAM CONTEXT — a JSON object describing the founding team: their skills, backgrounds, and network entries (industry contacts with connection strength).
 2. IDEA — a JSON object describing the startup idea to evaluate.
+
+Before evaluating, reason through the following in order:
+1. What problem is actually being solved, and for whom specifically? (Be precise — vague TAMs hide weak ideas)
+2. Who already solves this, and why would a customer switch today?
+3. What is the single most likely reason this startup fails within 18 months?
+4. Does this team have the specific, demonstrated ability to execute on THIS idea — not just adjacent experience?
 
 The following is the complete skill taxonomy. Use ONLY these exact key strings when populating requiredSkills:
 
@@ -24,27 +30,42 @@ Evaluate and return ONLY valid JSON with this exact schema:
 {
   "ideaQualityScore": <integer 0-100>,
   "teamIdeaFitScore": <integer 0-100>,
+  "overallViabilityScore": <integer 0-100>,
+  "recommendation": "pass" | "watch" | "conditional-proceed" | "proceed",
   "timeToFirstCustomer": "<range string, e.g. '3-6 months'>",
-  "narrative": "<2-4 sentence plain English summary of the idea and its prospects>",
+  "narrative": "<3-5 sentence plain English summary. Must name the single biggest risk in the first sentence. Must not use the words 'innovative', 'exciting', 'promising', or 'potential'.>",
   "reasoning": {
     "ideaQuality": {
       "problemClarity": <integer 0-10>,
       "marketOpportunity": <integer 0-10>,
       "competitiveLandscape": <integer 0-10>,
-      "notes": "<string>"
+      "defensibility": <integer 0-10>,
+      "revenueModel": <integer 0-10>,
+      "notes": "<string. Must identify the most likely reason this idea fails, not general observations.>"
     },
     "teamFit": {
       "skillAlignment": <integer 0-10>,
       "domainExperience": <integer 0-10>,
-      "gaps": ["<gap string>"],
+      "founderMarketFit": <integer 0-10>,
+      "executionRisk": <integer 0-10>,
+      "gaps": ["<gap string — be specific: not 'needs sales' but 'no one on team has sold to enterprise procurement before'>"],
       "notes": "<string>"
     },
     "timeEstimate": {
       "optimistic": "<string>",
       "realistic": "<string>",
-      "keyRisks": ["<risk string>"]
+      "pessimistic": "<string>",
+      "keyRisks": ["<risk string>"],
+      "blockers": ["<what must be true for the optimistic case to hold>"]
     },
-    "requiredSkills": ["<exact skill key from taxonomy above>"]
+    "marketSizing": {
+      "tam": "<string — total addressable market, e.g. '$4B global SMB payroll software'>",
+      "sam": "<string — serviceable addressable market>",
+      "initialWedge": "<string — the specific first beachhead customer segment>"
+    },
+    "requiredSkills": ["<exact skill key from taxonomy above>"],
+    "missingSkills": ["<exact skill key — skills required but absent from the team>"],
+    "competitorFlags": ["<named competitor or category, e.g. 'Rippling already does this for SMBs'>"]
   }
 }
 
@@ -97,7 +118,7 @@ function buildIdeaPayload(idea: Idea): string {
       },
     },
     null,
-    2
+    2,
   );
 }
 
@@ -153,13 +174,13 @@ function validateAndNormalize(raw: unknown): AIScoreResult {
  */
 export async function callClaudeForScores(
   idea: Idea,
-  members: MemberWithProfile[]
+  members: MemberWithProfile[],
 ): Promise<AIScoreResult> {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  const message = await client.beta.promptCaching.messages.create({
+  const message = await client.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 1024,
+    max_tokens: 2048,
     system: [
       {
         type: "text",
@@ -188,15 +209,18 @@ export async function callClaudeForScores(
     ],
   });
 
-  const raw = (message.content[0] as Anthropic.TextBlock).text.trim();
+  let raw = (message.content[0] as Anthropic.TextBlock).text.trim();
+
+  // Strip markdown code fences if the model wraps the output despite instructions.
+  if (raw.startsWith("```")) {
+    raw = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+  }
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    throw new Error(
-      `Claude returned non-JSON response: ${raw.slice(0, 300)}`
-    );
+    throw new Error(`Claude returned non-JSON response: ${raw.slice(0, 300)}`);
   }
 
   return validateAndNormalize(parsed);
