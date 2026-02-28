@@ -63,7 +63,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-zinc-50 py-10">
       <div className="mx-auto max-w-2xl space-y-8 px-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-xl font-semibold text-zinc-900">Your Profile</h1>
             <p className="text-sm text-zinc-500">
