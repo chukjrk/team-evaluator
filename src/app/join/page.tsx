@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export default function JoinPage() {
+function JoinContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const { isLoaded, isSignedIn } = useUser();
@@ -94,5 +94,13 @@ export default function JoinPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function JoinPage() {
+  return (
+    <Suspense fallback={null}>
+      <JoinContent />
+    </Suspense>
   );
 }
