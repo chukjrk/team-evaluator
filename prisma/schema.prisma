@@ -34,6 +34,7 @@ model WorkspaceMember {
   workspace      Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   profile        CofounderProfile?
   submittedIdeas Idea[]
+  networkImportSessions NetworkImportSession[]
 
   @@unique([workspaceId, clerkUserId])
   @@index([clerkUserId])
@@ -103,6 +104,24 @@ enum Visibility {
   PRIVATE
   WORKSPACE
   SHARED
+}
+
+// ─────────────────────────────────────────────────────────────
+// NETWORK IMPORT — caching + session models
+// ─────────────────────────────────────────────────────────────
+
+model CompanyIndustryCache {
+  domain    String   @id        // e.g. "stripe.com"
+  industry  String              // valid INDUSTRIES key
+  cachedAt  DateTime @default(now())
+}
+
+model NetworkImportSession {
+  id        String   @id @default(cuid())
+  memberId  String
+  groups    Json                // CategorizedGroup[]
+  expiresAt DateTime
+  member    WorkspaceMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
 }
 
 // ─────────────────────────────────────────────────────────────
