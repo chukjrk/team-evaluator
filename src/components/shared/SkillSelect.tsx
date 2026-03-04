@@ -109,7 +109,7 @@ export function SkillSelect({ value, onChange }: SkillSelectProps) {
               <button
                 type="button"
                 onClick={() => remove(skill)}
-                className="ml-0.5 rounded-sm opacity-60 hover:opacity-100"
+                className="ml-0.5 rounded-sm opacity-60 hover:opacity-100 cursor-pointer"
               >
                 <X className="h-3 w-3" />
               </button>
