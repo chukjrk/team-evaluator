@@ -202,7 +202,7 @@ export function AppShell({ currentMemberId }: AppShellProps) {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "relative flex-1 flex flex-col items-center justify-center py-2.5 gap-1 text-xs font-medium transition-colors",
+                "relative flex-1 flex flex-col items-center justify-center py-2.5 gap-1 text-xs font-medium transition-colors cursor-pointer",
                 activeTab === tab.id
                   ? "text-violet-600"
                   : "text-zinc-400 hover:text-zinc-600"
