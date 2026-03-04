@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { NetworkEntryForm } from "@/components/profile/NetworkEntryForm";
+import { NetworkImportSection } from "@/components/profile/NetworkImportSection";
 import { INDUSTRY_LABELS } from "@/lib/constants/industries";
 import type { SkillKey } from "@/lib/constants/skills";
 import type { NetworkEntry } from "@prisma/client";
@@ -37,7 +38,7 @@ const STRENGTH_COLORS = {
 export default function ProfilePage() {
   const router = useRouter();
   const { data: profile, mutate } = useSWR<ProfileData>("/api/profile", fetcher);
-  const [networkFormOpen, setNetworkFormOpen] = useState(false);
+  const [editFormOpen, setEditFormOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<NetworkEntry | undefined>();
 
   async function deleteEntry(id: string) {
@@ -50,14 +51,9 @@ export default function ProfilePage() {
     }
   }
 
-  function openNewEntry() {
-    setEditingEntry(undefined);
-    setNetworkFormOpen(true);
-  }
-
   function openEditEntry(entry: NetworkEntry) {
     setEditingEntry(entry);
-    setNetworkFormOpen(true);
+    setEditFormOpen(true);
   }
 
   return (
@@ -92,14 +88,13 @@ export default function ProfilePage() {
 
         {/* Network Entries */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader>
             <CardTitle className="text-base">Your Network</CardTitle>
-            <Button size="sm" onClick={openNewEntry}>
-              <Plus className="mr-1.5 h-4 w-4" />
-              Add Entry
-            </Button>
           </CardHeader>
           <CardContent className="space-y-3">
+            <Suspense>
+              <NetworkImportSection onSaved={() => mutate()} />
+            </Suspense>
             {!profile?.networkEntries?.length && (
               <p className="text-sm text-zinc-400">
                 No network entries yet. Add segments of your network to help
@@ -154,8 +149,8 @@ export default function ProfilePage() {
       </div>
 
       <NetworkEntryForm
-        open={networkFormOpen}
-        onOpenChange={setNetworkFormOpen}
+        open={editFormOpen}
+        onOpenChange={setEditFormOpen}
         existing={editingEntry}
         onSaved={() => mutate()}
       />

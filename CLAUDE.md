@@ -25,6 +25,8 @@ In `.env.local`:
 - `DATABASE_URL` — Neon PostgreSQL connection string
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `CLERK_WEBHOOK_SECRET` — Clerk auth
 - `ANTHROPIC_API_KEY` — Claude API
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` — Google OAuth (required for Google Contacts import)
+- `NEXT_PUBLIC_APP_URL` — full app origin (e.g. `http://localhost:3000`), used to build Google OAuth redirect URI
 
 ## Architecture
 
@@ -39,7 +41,7 @@ In `.env.local`:
 
 **Critical**: Prisma v7 does not support a `url` field in `schema.prisma`. Connection is configured via `@prisma/adapter-pg` and passed directly to `PrismaClient`. See `src/lib/prisma.ts` for the singleton pattern.
 
-Schema models: `Workspace` → `WorkspaceMember` → `CofounderProfile` → `NetworkEntry`. Ideas (`Idea`) belong to a workspace and a submitter. Scores (`IdeaScore`) are cached 1:1 with ideas.
+Schema models: `Workspace` → `WorkspaceMember` → `CofounderProfile` → `NetworkEntry`. Ideas (`Idea`) belong to a workspace and a submitter. Scores (`IdeaScore`) are cached 1:1 with ideas. `CompanyIndustryCache` stores domain→industry classifications (domain as PK). `NetworkImportSession` stores in-progress import groups per member (expires in 1 hour, cleaned up on confirm or dismiss).
 
 All members are equal — there is no owner/admin role distinction.
 
@@ -81,13 +83,20 @@ Key routes:
 - `GET/POST /api/profile` — cofounder profile
 - `GET/POST /api/network` — network entries
 - `DELETE /api/network/[id]` — remove network entry
+- `GET /api/network/google/auth` — start Google OAuth flow (returns `{ url }` for client-side redirect)
+- `GET /api/network/google/callback` — OAuth callback; fetches contacts, classifies, writes `NetworkImportSession`, redirects to `/profile?google-import=<id>`
+- `GET/DELETE /api/network/import/session` — fetch or delete current unexpired import session
+- `POST /api/network/import/confirm` — bulk-create NetworkEntry records from confirmed groups, deletes session
+- `POST /api/network/import/linkedin` — accepts `{ rows: [{company, position}] }`, returns classified `CategorizedGroup[]` (preview only; client calls confirm to save)
 - `GET /api/members` — workspace member list
 
 ### Constants & Types
 
 - `src/lib/constants/skills.ts` — `SKILLS_TAXONOMY` with three categories and a `SkillKey` union type. Skills are stored as `string[]` in DB; `SkillKey` is enforced only at input boundaries.
 - `src/lib/constants/industries.ts` — industry keys used across ideas and network entries.
-- `src/lib/types/` — `IdeaData` (idea + score), `MemberWithProfile`, `ScoreResult`, `AIScoreResult`.
+- `src/lib/types/` — `IdeaData` (idea + score), `MemberWithProfile`, `ScoreResult`, `AIScoreResult`, `CategorizedGroup` (import groups).
+- `src/lib/contacts/domains.ts` — `PERSONAL_DOMAINS` set, `extractDomain`, `domainToCompanyName` utilities.
+- `src/lib/contacts/classify.ts` — `classifyCompanyDomains` (domain→industry via cache+Haiku), `classifyContactGroups` (company+position→`CategorizedGroup[]` via Haiku). Both use `claude-haiku-4-5-20251001`.
 
 ### UI Components
 
