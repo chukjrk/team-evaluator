@@ -26,7 +26,7 @@ export function LeftPanel() {
             {workspace?.name ?? "Loading..."}
           </h1>
         </div>
-        <Link href="/profile">
+        <Link href="/settings">
           <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
             <Settings className="h-3.5 w-3.5" />
           </Button>
