@@ -10,7 +10,7 @@ const createIdeaSchema = z.object({
   targetCustomer: z.string().min(5).max(500),
   industry: z.enum([...INDUSTRIES] as [string, ...string[]]),
   notes: z.string().max(1000).optional(),
-  visibility: z.enum(["PRIVATE", "WORKSPACE"]).default("PRIVATE"),
+  visibility: z.enum(["PRIVATE", "WORKSPACE"]).default("WORKSPACE"),
 });
 
 export async function GET() {
