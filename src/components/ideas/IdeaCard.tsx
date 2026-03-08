@@ -26,7 +26,7 @@ export function IdeaCard({ idea, isSelected, onSelect }: IdeaCardProps) {
     <button
       onClick={onSelect}
       className={cn(
-        "w-full rounded-lg border px-4 py-3 text-left transition-colors hover:bg-zinc-50",
+        "w-full rounded-lg border px-4 py-3 text-left transition-colors hover:bg-zinc-50 cursor-pointer",
         isSelected
           ? "border-zinc-900 bg-zinc-50 ring-1 ring-zinc-900"
           : "border-zinc-200 bg-white"

@@ -190,7 +190,7 @@ export function NetworkEntryForm({
                     <button
                       type="button"
                       onClick={() => removeRole(role)}
-                      className="opacity-60 hover:opacity-100"
+                      className="opacity-60 hover:opacity-100 cursor-pointer"
                     >
                       <X className="h-3 w-3" />
                     </button>

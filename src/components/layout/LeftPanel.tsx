@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Settings } from "lucide-react";
+import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -13,6 +14,7 @@ import { useMembers, useWorkspaceInfo } from "@/hooks/useWorkspace";
 export function LeftPanel() {
   const { members, isLoading } = useMembers();
   const { workspace } = useWorkspaceInfo();
+  const { user } = useUser();
 
   return (
     <div className="flex h-full flex-col border-r border-zinc-200 bg-white">
@@ -26,7 +28,7 @@ export function LeftPanel() {
             {workspace?.name ?? "Loading..."}
           </h1>
         </div>
-        <Link href="/profile">
+        <Link href="/settings">
           <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
             <Settings className="h-3.5 w-3.5" />
           </Button>
@@ -49,7 +51,7 @@ export function LeftPanel() {
             ) : (
               <div className="space-y-2">
                 {members.map((m) => (
-                  <CofounderCard key={m.id} member={m} />
+                  <CofounderCard key={m.id} member={m} isCurrentUser={m.clerkUserId === user?.id} />
                 ))}
               </div>
             )}
