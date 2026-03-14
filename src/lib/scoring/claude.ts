@@ -105,9 +105,14 @@ function buildTeamContext(members: MemberWithProfile[]): string {
 /**
  * Idea payload — only the idea-specific fields.  This block is NOT cached
  * because it changes with every evaluation request.
+ *
+ * If `extraContext` is provided it is appended as an additional plain-text
+ * section so the evaluator can incorporate founder-supplied context (market
+ * research, traction data, pivots, etc.) without invalidating the cached
+ * team-context block.
  */
-function buildIdeaPayload(idea: Idea): string {
-  return JSON.stringify(
+function buildIdeaPayload(idea: Idea, extraContext?: string | null): string {
+  const payload = JSON.stringify(
     {
       idea: {
         title: idea.title,
@@ -120,6 +125,10 @@ function buildIdeaPayload(idea: Idea): string {
     null,
     2,
   );
+
+  if (!extraContext?.trim()) return payload;
+
+  return `${payload}\n\nADDITIONAL CONTEXT FROM FOUNDERS:\n${extraContext.trim()}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -175,6 +184,7 @@ function validateAndNormalize(raw: unknown): AIScoreResult {
 export async function callClaudeForScores(
   idea: Idea,
   members: MemberWithProfile[],
+  extraContext?: string | null,
 ): Promise<AIScoreResult> {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -202,7 +212,7 @@ export async function callClaudeForScores(
           {
             type: "text",
             // Idea — changes per request, never cached.
-            text: `IDEA TO EVALUATE:\n\n${buildIdeaPayload(idea)}`,
+            text: `IDEA TO EVALUATE:\n\n${buildIdeaPayload(idea, extraContext)}`,
           },
         ],
       },

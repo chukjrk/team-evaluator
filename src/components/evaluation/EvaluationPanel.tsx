@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { RefreshCw, Pencil, Trash2, Globe, Lock } from "lucide-react";
+import { RefreshCw, Pencil, Trash2, Globe, Lock, MessageSquarePlus, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -38,13 +38,23 @@ export function EvaluationPanel({
   onOpenEdit,
 }: EvaluationPanelProps) {
   const [evaluating, setEvaluating] = useState(false);
+  const [contextValue, setContextValue] = useState(idea.evaluationContext ?? "");
+  const [showContext, setShowContext] = useState(Boolean(idea.evaluationContext));
   const isOwner = idea.submitterId === currentMemberId;
+
+  // Sync context when selected idea changes
+  useEffect(() => {
+    setContextValue(idea.evaluationContext ?? "");
+    setShowContext(Boolean(idea.evaluationContext));
+  }, [idea.id, idea.evaluationContext]);
 
   async function handleEvaluate() {
     setEvaluating(true);
     try {
       const res = await fetch(`/api/ideas/${idea.id}/score`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ evaluationContext: contextValue.trim() || null }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -172,6 +182,42 @@ export function EvaluationPanel({
             </div>
           )}
         </div>
+
+        {/* Evaluation context — editable for owner, read-only for others if present */}
+        {(isOwner || contextValue) && (
+          <div className="mt-3 border-t border-zinc-100 pt-3">
+            <button
+              type="button"
+              className="flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-700 transition-colors"
+              onClick={() => setShowContext((v) => !v)}
+            >
+              <MessageSquarePlus className="h-3.5 w-3.5" />
+              {contextValue ? "Evaluation context" : "Add evaluation context"}
+              {showContext ? (
+                <ChevronUp className="h-3 w-3 ml-auto" />
+              ) : (
+                <ChevronDown className="h-3 w-3 ml-auto" />
+              )}
+            </button>
+            {showContext && (
+              <div className="mt-2">
+                {isOwner ? (
+                  <textarea
+                    className="w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700 placeholder:text-zinc-400 resize-none focus:outline-none focus:ring-1 focus:ring-zinc-400"
+                    rows={4}
+                    placeholder="Add extra context for the AI evaluator — e.g. traction data, pivots, market research, constraints, or anything not captured above. Sent with the next evaluation."
+                    value={contextValue}
+                    onChange={(e) => setContextValue(e.target.value)}
+                  />
+                ) : (
+                  <p className="text-xs text-zinc-500 bg-zinc-50 rounded-md border border-zinc-200 px-3 py-2">
+                    {contextValue}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Scrollable body */}

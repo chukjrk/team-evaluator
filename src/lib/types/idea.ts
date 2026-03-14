@@ -10,6 +10,7 @@ export interface IdeaData {
   targetCustomer: string;
   industry: string;
   notes: string | null;
+  evaluationContext: string | null;
   visibility: Visibility;
   createdAt: Date;
   updatedAt: Date;

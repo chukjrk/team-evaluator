@@ -16,13 +16,14 @@ const COMPOSITE_WEIGHTS = {
 export async function computeFullScore(
   idea: Idea,
   members: MemberWithProfile[],
-  allNetworkEntries: NetworkEntry[]
+  allNetworkEntries: NetworkEntry[],
+  extraContext?: string | null,
 ): Promise<ScoreResult> {
   const teamSkillScore = computeTeamSkillScore(members);
   const networkScore = computeNetworkScore(allNetworkEntries, idea.industry);
 
   // Claude call (slow — 5-15s)
-  const aiResult = await callClaudeForScores(idea, members);
+  const aiResult = await callClaudeForScores(idea, members, extraContext);
 
   const compositeScore = clamp(
     COMPOSITE_WEIGHTS.teamSkill * teamSkillScore +

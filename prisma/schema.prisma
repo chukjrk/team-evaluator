@@ -86,6 +86,7 @@ model Idea {
   targetCustomer   String     @db.Text
   industry         String     // key from INDUSTRIES constant
   notes            String?    @db.Text
+  evaluationContext String?   @db.Text
   visibility       Visibility @default(PRIVATE)
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt

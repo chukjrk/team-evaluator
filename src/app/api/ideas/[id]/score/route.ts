@@ -6,7 +6,7 @@ import type { MemberWithProfile } from "@/lib/types/profile";
 import type { NetworkEntry } from "@prisma/client";
 
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { userId } = await auth();
@@ -19,7 +19,7 @@ export async function POST(
   });
   if (!member) return NextResponse.json({ error: "Not a workspace member" }, { status: 403 });
 
-  const idea = await prisma.idea.findFirst({
+  let idea = await prisma.idea.findFirst({
     where: { id, workspaceId: member.workspaceId },
   });
   if (!idea) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -27,6 +27,17 @@ export async function POST(
   // Only submitter can trigger evaluation
   if (idea.submitterId !== member.id) {
     return NextResponse.json({ error: "Only the idea submitter can evaluate" }, { status: 403 });
+  }
+
+  // If the request body contains an updated evaluationContext, persist it first
+  let body: { evaluationContext?: string | null } = {};
+  try { body = await req.json(); } catch { /* empty body is fine */ }
+
+  if (typeof body.evaluationContext !== "undefined") {
+    idea = await prisma.idea.update({
+      where: { id },
+      data: { evaluationContext: body.evaluationContext ?? null },
+    });
   }
 
   // Fetch all workspace members with profiles + network entries
@@ -63,7 +74,7 @@ export async function POST(
 
   let scoreResult;
   try {
-    scoreResult = await computeFullScore(idea, typedMembers, allNetworkEntries);
+    scoreResult = await computeFullScore(idea, typedMembers, allNetworkEntries, idea.evaluationContext);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Scoring failed";
     return NextResponse.json({ error: message }, { status: 503 });
