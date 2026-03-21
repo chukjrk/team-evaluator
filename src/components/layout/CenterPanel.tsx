@@ -30,7 +30,7 @@ export function CenterPanel({
   });
 
   const filtered = ideas.filter((idea) => {
-    if (filters.industry !== "all" && idea.industry !== filters.industry) return false;
+    if (filters.industry !== "all" && idea.industryId !== filters.industry) return false;
     if (filters.visibility !== "all" && idea.visibility !== filters.visibility) return false;
     return true;
   });

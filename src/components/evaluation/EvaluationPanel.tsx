@@ -17,10 +17,8 @@ import { IdeaSkillCoverage } from "./IdeaSkillCoverage";
 import { TimeEstimateChip } from "./TimeEstimateChip";
 import { AIInsightCard } from "./AIInsightCard";
 import { ScoreLoadingState } from "./ScoreLoadingState";
-import { INDUSTRY_LABELS } from "@/lib/constants/industries";
 import type { IdeaData, Visibility } from "@/lib/types/idea";
 import type { StoredReasoning, Recommendation } from "@/lib/types/scoring";
-import type { IndustryKey } from "@/lib/constants/industries";
 
 interface EvaluationPanelProps {
   idea: IdeaData;
@@ -134,7 +132,7 @@ export function EvaluationPanel({
                 className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
                 style={{ background: "#fef3c7", border: "1px solid #f59e0b", color: "#92400e" }}
               >
-                {INDUSTRY_LABELS[idea.industry as IndustryKey] ?? idea.industry}
+                {idea.industry.label}
               </span>
             </div>
           </div>

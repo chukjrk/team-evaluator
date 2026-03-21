@@ -1,11 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
-import { INDUSTRIES } from "@/lib/constants/industries";
+import { INDUSTRY_IDS } from "@/lib/constants/industries";
 import type { CategorizedGroup } from "@/lib/types/import";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const VALID_INDUSTRIES: Set<string> = new Set(INDUSTRIES);
+const VALID_INDUSTRY_IDS: Set<string> = new Set(INDUSTRY_IDS);
 
 function stripFences(raw: string): string {
   if (raw.startsWith("```")) {
@@ -15,12 +15,12 @@ function stripFences(raw: string): string {
 }
 
 /**
- * Classifies company domains → industry keys.
+ * Classifies company domains → industry IDs.
  * Checks CompanyIndustryCache first; only sends uncached companies to Claude.
  * Writes new results back to cache before returning.
  *
  * @param domains - unique company domain strings (e.g. "stripe.com")
- * @returns Map of domain → industry key
+ * @returns Map of domain → industryId
  */
 export async function classifyCompanyDomains(
   domains: string[],
@@ -33,7 +33,7 @@ export async function classifyCompanyDomains(
   });
 
   const resultMap = new Map<string, string>(
-    cached.map((c) => [c.domain, c.industry]),
+    cached.map((c) => [c.domain, c.industryId]),
   );
 
   const uncached = domains.filter((d) => !resultMap.has(d));
@@ -41,8 +41,8 @@ export async function classifyCompanyDomains(
   if (uncached.length > 0) {
     // Process in chunks of 40 so the JSON response never exceeds token limits
     const CHUNK_SIZE = 40;
-    const industryList = INDUSTRIES.join(", ");
-    const toCache: Array<{ domain: string; industry: string }> = [];
+    const industryList = INDUSTRY_IDS.join(", ");
+    const toCache: Array<{ domain: string; industryId: string }> = [];
 
     for (let i = 0; i < uncached.length; i += CHUNK_SIZE) {
       const chunk = uncached.slice(i, i + CHUNK_SIZE);
@@ -79,11 +79,11 @@ Do not include any text outside the JSON object.`,
       }
 
       for (const domain of chunk) {
-        const industry = VALID_INDUSTRIES.has(parsed[domain])
+        const industryId = VALID_INDUSTRY_IDS.has(parsed[domain])
           ? parsed[domain]
           : "other";
-        resultMap.set(domain, industry);
-        toCache.push({ domain, industry });
+        resultMap.set(domain, industryId);
+        toCache.push({ domain, industryId });
       }
     }
 
@@ -94,7 +94,7 @@ Do not include any text outside the JSON object.`,
           prisma.companyIndustryCache.upsert({
             where: { domain: entry.domain },
             create: entry,
-            update: { industry: entry.industry, cachedAt: new Date() },
+            update: { industryId: entry.industryId, cachedAt: new Date() },
           }),
         ),
       );
@@ -116,7 +116,7 @@ export async function classifyContactGroups(
 ): Promise<Omit<CategorizedGroup, "connectionStrength">[]> {
   if (rows.length === 0) return [];
 
-  const industryList = INDUSTRIES.join(", ");
+  const industryList = INDUSTRY_IDS.join(", ");
   const rowsJson = JSON.stringify(rows.slice(0, 500));
 
   const message = await client.messages.create({
@@ -160,7 +160,7 @@ Do not include any text outside the JSON array.`,
   } catch {
     return [
       {
-        industry: "other",
+        industryId: "other",
         estimatedContacts: Math.min(rows.length, 500),
         notableRoles: [],
       },
@@ -170,8 +170,64 @@ Do not include any text outside the JSON array.`,
   return parsed
     .filter((g) => typeof g.industry === "string" && typeof g.estimatedContacts === "number")
     .map((g) => ({
-      industry: VALID_INDUSTRIES.has(g.industry) ? g.industry : "other",
+      industryId: VALID_INDUSTRY_IDS.has(g.industry) ? g.industry : "other",
       estimatedContacts: Math.max(0, Math.round(g.estimatedContacts)),
       notableRoles: Array.isArray(g.notableRoles) ? g.notableRoles.slice(0, 10) : [],
     }));
+}
+
+/**
+ * Classifies individual contact rows to per-row industry IDs.
+ * Returns an array of industryId strings, one per input row (same order).
+ * Used by the LinkedIn import to build StagedContact records.
+ *
+ * @param rows - array of {company, position} objects (max 500)
+ * @returns industryId string[] aligned with input rows
+ */
+export async function classifyContactsPerRow(
+  rows: { company: string; position: string }[],
+): Promise<string[]> {
+  if (rows.length === 0) return [];
+
+  const capped = rows.slice(0, 500);
+  const industryList = INDUSTRY_IDS.join(", ");
+  const rowsJson = JSON.stringify(capped);
+
+  const message = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 4096,
+    messages: [
+      {
+        role: "user",
+        content: `Given these contacts (company and position pairs), classify each one into the best-fitting industry key.
+
+Valid industry keys: ${industryList}
+
+Contacts: ${rowsJson}
+
+Return ONLY a valid JSON array of industry key strings, one per contact, in the same order as the input.
+The array must have exactly ${capped.length} elements.
+Use "other" when no industry fits.
+
+Do not include any text outside the JSON array.`,
+      },
+    ],
+  });
+
+  let raw = (message.content[0] as Anthropic.TextBlock).text.trim();
+  raw = stripFences(raw);
+
+  let parsed: string[];
+  try {
+    parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) throw new Error("Not an array");
+  } catch {
+    return capped.map(() => "other");
+  }
+
+  // Ensure length matches and all values are valid
+  return capped.map((_, i) => {
+    const val = parsed[i];
+    return typeof val === "string" && VALID_INDUSTRY_IDS.has(val) ? val : "other";
+  });
 }

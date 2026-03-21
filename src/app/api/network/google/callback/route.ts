@@ -4,7 +4,7 @@ import { createHmac } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { PERSONAL_DOMAINS, extractDomain } from "@/lib/contacts/domains";
 import { classifyCompanyDomains, classifyContactGroups } from "@/lib/contacts/classify";
-import type { CategorizedGroup } from "@/lib/types/import";
+import type { CategorizedGroup, ImportSessionData, StagedContact } from "@/lib/types/import";
 
 const TEN_MINUTES_MS = 10 * 60 * 1000;
 
@@ -65,6 +65,7 @@ async function exchangeCode(
 // ─── Google People API helpers ────────────────────────────────────────────────
 
 interface GooglePerson {
+  names?: Array<{ displayName?: string }>;
   emailAddresses?: Array<{ value: string }>;
   organizations?: Array<{ name?: string }>;
   occupations?: Array<{ value: string }>;
@@ -104,11 +105,13 @@ async function fetchAllPages(
 async function processContacts(
   explicit: GooglePerson[],
   other: GooglePerson[],
-): Promise<CategorizedGroup[]> {
+): Promise<{ groups: CategorizedGroup[]; contacts: StagedContact[] }> {
   // Explicit contacts with company/position → WARM
   const warmRows: { company: string; position: string }[] = [];
+  const warmPersons: GooglePerson[] = [];
   // Contacts with only domain → MODERATE
   const moderateDomains: string[] = [];
+  const moderatePersonDomains: string[] = []; // per-person domain (aligned with moderateDomains)
 
   for (const person of explicit) {
     const company = person.organizations?.[0]?.name?.trim();
@@ -118,8 +121,10 @@ async function processContacts(
 
     if (company) {
       warmRows.push({ company, position });
+      warmPersons.push(person);
     } else if (domain && !PERSONAL_DOMAINS.has(domain)) {
       moderateDomains.push(domain);
+      moderatePersonDomains.push(domain);
     }
   }
 
@@ -129,37 +134,71 @@ async function processContacts(
     const domain = extractDomain(email);
     if (domain && !PERSONAL_DOMAINS.has(domain)) {
       moderateDomains.push(domain);
+      moderatePersonDomains.push(domain);
     }
   }
 
-  // Classify warm rows by company+position
-  const warmGroups = await classifyContactGroups(warmRows);
+  // Classify warm rows by company+position (for groups)
+  const warmGroupsBase = await classifyContactGroups(warmRows);
 
-  // Classify moderate domains
-  const uniqueModerateDomains = [...new Set(moderateDomains)];
-  const domainMap = await classifyCompanyDomains(uniqueModerateDomains);
+  // Classify all unique domains (for moderate groups + back-filling warm contact industryIds)
+  const warmDomains = warmPersons.map((p) => {
+    const email = p.emailAddresses?.[0]?.value ?? "";
+    return email ? extractDomain(email) : "";
+  }).filter(Boolean);
 
-  // Aggregate moderate contacts by industry
+  const uniqueDomainsToClassify = [...new Set([...warmDomains, ...moderateDomains.filter(Boolean)])];
+  const domainMap = await classifyCompanyDomains(uniqueDomainsToClassify);
+
+  // Build staged contacts for warm persons
+  const warmContacts: StagedContact[] = warmPersons.map((p, i) => {
+    const company = p.organizations?.[0]?.name?.trim();
+    const position = p.occupations?.[0]?.value?.trim();
+    const email = p.emailAddresses?.[0]?.value ?? "";
+    const domain = email ? extractDomain(email) : undefined;
+    const name = p.names?.[0]?.displayName?.trim();
+    const industryId = domain ? domainMap.get(domain) : undefined;
+
+    return {
+      name: name || undefined,
+      company: company || undefined,
+      domain: domain || undefined,
+      position: position || undefined,
+      industryId: industryId || undefined,
+      connectionStrength: "WARM",
+      source: "GOOGLE",
+    };
+  });
+
+  // Build staged contacts for moderate persons
+  const moderateContacts: StagedContact[] = moderatePersonDomains.map((domain) => ({
+    domain: domain || undefined,
+    industryId: domainMap.get(domain) || undefined,
+    connectionStrength: "MODERATE",
+    source: "GOOGLE",
+  }));
+
+  // Aggregate moderate contacts by industry for groups
   const moderateByIndustry = new Map<string, number>();
   for (const domain of moderateDomains) {
-    const industry = domainMap.get(domain) ?? "other";
-    moderateByIndustry.set(industry, (moderateByIndustry.get(industry) ?? 0) + 1);
+    const industryId = domainMap.get(domain) ?? "other";
+    moderateByIndustry.set(industryId, (moderateByIndustry.get(industryId) ?? 0) + 1);
   }
 
   const groups: CategorizedGroup[] = [
-    ...warmGroups.map((g) => ({ ...g, connectionStrength: "WARM" as const })),
-    ...Array.from(moderateByIndustry.entries()).map(([industry, count]) => ({
-      industry,
+    ...warmGroupsBase.map((g) => ({ ...g, connectionStrength: "WARM" as const })),
+    ...Array.from(moderateByIndustry.entries()).map(([industryId, count]) => ({
+      industryId,
       estimatedContacts: count,
       notableRoles: [] as string[],
       connectionStrength: "MODERATE" as const,
     })),
   ];
 
-  // Merge groups with the same (industry, connectionStrength)
+  // Merge groups with the same (industryId, connectionStrength)
   const merged = new Map<string, CategorizedGroup>();
   for (const g of groups) {
-    const key = `${g.industry}|${g.connectionStrength}`;
+    const key = `${g.industryId}|${g.connectionStrength}`;
     if (merged.has(key)) {
       const existing = merged.get(key)!;
       existing.estimatedContacts += g.estimatedContacts;
@@ -170,7 +209,10 @@ async function processContacts(
     }
   }
 
-  return [...merged.values()];
+  return {
+    groups: [...merged.values()],
+    contacts: [...warmContacts, ...moderateContacts],
+  };
 }
 
 // ─── Route handler ────────────────────────────────────────────────────────────
@@ -229,18 +271,19 @@ export async function GET(req: NextRequest) {
   ]);
 
   // Classify and group
-  const groups = await processContacts(explicit, other);
+  const { groups, contacts } = await processContacts(explicit, other);
 
-  if (groups.length === 0) {
+  if (groups.length === 0 && contacts.length === 0) {
     return NextResponse.redirect(`${appUrl}/profile?google-import=empty`);
   }
 
-  // Write session (expires in 1 hour)
+  // Write session as ImportSessionData envelope (version 2)
+  const sessionData: ImportSessionData = { version: 2, groups, contacts };
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
   const session = await prisma.networkImportSession.create({
     data: {
       memberId: member.id,
-      groups: groups as object,
+      groups: sessionData as object,
       expiresAt,
     },
   });

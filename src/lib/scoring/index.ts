@@ -1,8 +1,8 @@
-import type { Idea, NetworkEntry } from "@prisma/client";
+import type { Contact, Idea, NetworkEntry } from "@prisma/client";
 import type { MemberWithProfile } from "@/lib/types/profile";
 import type { ScoreResult } from "@/lib/types/scoring";
 import { computeTeamSkillScore } from "./team-skill";
-import { computeNetworkScore } from "./network";
+import { computeNetworkScoreHybrid } from "./network";
 import { callClaudeForScores } from "./claude";
 import { clamp } from "@/lib/utils";
 
@@ -16,10 +16,11 @@ const COMPOSITE_WEIGHTS = {
 export async function computeFullScore(
   idea: Idea,
   members: MemberWithProfile[],
-  allNetworkEntries: NetworkEntry[]
+  allNetworkEntries: NetworkEntry[],
+  allContacts: Contact[] = []
 ): Promise<ScoreResult> {
   const teamSkillScore = computeTeamSkillScore(members);
-  const networkScore = computeNetworkScore(allNetworkEntries, idea.industry);
+  const networkScore = computeNetworkScoreHybrid(allContacts, allNetworkEntries, idea.industryId);
 
   // Claude call (slow — 5-15s)
   const aiResult = await callClaudeForScores(idea, members);

@@ -16,7 +16,11 @@ export async function GET() {
   const member = await prisma.workspaceMember.findFirst({
     where: { clerkUserId: userId },
     include: {
-      profile: { include: { networkEntries: true } },
+      profile: {
+        include: {
+          networkEntries: { include: { industry: { select: { id: true, label: true } } } },
+        },
+      },
     },
   });
 
@@ -49,7 +53,9 @@ export async function PUT(req: NextRequest) {
       background: parsed.data.background,
       skills: parsed.data.skills,
     },
-    include: { networkEntries: true },
+    include: {
+      networkEntries: { include: { industry: { select: { id: true, label: true } } } },
+    },
   });
 
   return NextResponse.json(profile);

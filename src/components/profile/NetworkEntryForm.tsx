@@ -19,13 +19,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { IndustrySelect } from "@/components/shared/IndustrySelect";
-import type { IndustryKey } from "@/lib/constants/industries";
-import type { NetworkEntry } from "@prisma/client";
+
+interface ExistingNetworkEntry {
+  id: string;
+  industryId: string;
+  estimatedContacts: number;
+  notableRoles: string[];
+  connectionStrength: "WARM" | "MODERATE" | "COLD";
+}
 
 interface NetworkEntryFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  existing?: NetworkEntry;
+  existing?: ExistingNetworkEntry;
   onSaved: () => void;
 }
 
@@ -35,9 +41,7 @@ export function NetworkEntryForm({
   existing,
   onSaved,
 }: NetworkEntryFormProps) {
-  const [industry, setIndustry] = useState<IndustryKey>(
-    (existing?.industry as IndustryKey) ?? ""
-  );
+  const [industry, setIndustry] = useState<string>(existing?.industryId ?? "");
   const [contacts, setContacts] = useState(
     existing?.estimatedContacts?.toString() ?? ""
   );
@@ -68,7 +72,7 @@ export function NetworkEntryForm({
     setSaving(true);
     try {
       const payload = {
-        industry,
+        industryId: industry,
         estimatedContacts: parseInt(contacts) || 0,
         notableRoles: roles,
         connectionStrength: strength,

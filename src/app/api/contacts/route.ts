@@ -4,21 +4,25 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { INDUSTRY_IDS } from "@/lib/constants/industries";
 
-const networkEntrySchema = z.object({
-  industryId: z.string().refine((v) => (INDUSTRY_IDS as readonly string[]).includes(v), {
-    message: "Invalid industry",
-  }),
-  estimatedContacts: z.number().int().min(0).max(1_000_000),
-  notableRoles: z.array(z.string().max(50)).max(10),
+const createContactSchema = z.object({
+  name: z.string().max(200).optional(),
+  company: z.string().max(200).optional(),
+  domain: z.string().max(253).optional(),
+  position: z.string().max(200).optional(),
+  industryId: z
+    .string()
+    .refine((v) => (INDUSTRY_IDS as readonly string[]).includes(v), {
+      message: "Invalid industry",
+    })
+    .optional(),
   connectionStrength: z.enum(["WARM", "MODERATE", "COLD"]),
 });
 
 async function getMemberProfile(userId: string) {
-  const member = await prisma.workspaceMember.findFirst({
+  return prisma.workspaceMember.findFirst({
     where: { clerkUserId: userId },
     include: { profile: true },
   });
-  return member;
 }
 
 export async function GET() {
@@ -29,13 +33,13 @@ export async function GET() {
   if (!member) return NextResponse.json({ error: "Not a workspace member" }, { status: 403 });
   if (!member.profile) return NextResponse.json([]);
 
-  const entries = await prisma.networkEntry.findMany({
+  const contacts = await prisma.contact.findMany({
     where: { profileId: member.profile.id },
     include: { industry: { select: { id: true, label: true } } },
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json(entries);
+  return NextResponse.json(contacts);
 }
 
 export async function POST(req: NextRequest) {
@@ -44,16 +48,23 @@ export async function POST(req: NextRequest) {
 
   const member = await getMemberProfile(userId);
   if (!member) return NextResponse.json({ error: "Not a workspace member" }, { status: 403 });
-  if (!member.profile) return NextResponse.json({ error: "Complete your profile first" }, { status: 409 });
+  if (!member.profile) {
+    return NextResponse.json({ error: "Complete your profile first" }, { status: 409 });
+  }
 
   const body = await req.json();
-  const parsed = networkEntrySchema.safeParse(body);
+  const parsed = createContactSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const entry = await prisma.networkEntry.create({
-    data: { ...parsed.data, profileId: member.profile.id },
+  const contact = await prisma.contact.create({
+    data: {
+      ...parsed.data,
+      source: "MANUAL",
+      embedding: [],
+      profileId: member.profile.id,
+    },
     include: { industry: { select: { id: true, label: true } } },
   });
 
-  return NextResponse.json(entry, { status: 201 });
+  return NextResponse.json(contact, { status: 201 });
 }

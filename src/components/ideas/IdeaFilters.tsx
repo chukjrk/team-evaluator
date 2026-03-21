@@ -1,5 +1,6 @@
 "use client";
 
+import useSWR from "swr";
 import {
   Select,
   SelectContent,
@@ -7,7 +8,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { INDUSTRIES, INDUSTRY_LABELS } from "@/lib/constants/industries";
+
+interface IndustryOption {
+  id: string;
+  label: string;
+}
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export interface IdeaFilterState {
   industry: string;
@@ -20,6 +27,12 @@ interface IdeaFiltersProps {
 }
 
 export function IdeaFilters({ filters, onChange }: IdeaFiltersProps) {
+  const { data: industries = [] } = useSWR<IndustryOption[]>(
+    "/api/industries",
+    fetcher,
+    { revalidateOnFocus: false },
+  );
+
   return (
     <div className="flex gap-2">
       <Select
@@ -31,9 +44,9 @@ export function IdeaFilters({ filters, onChange }: IdeaFiltersProps) {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All industries</SelectItem>
-          {INDUSTRIES.map((ind) => (
-            <SelectItem key={ind} value={ind}>
-              {INDUSTRY_LABELS[ind]}
+          {industries.map((ind) => (
+            <SelectItem key={ind.id} value={ind.id}>
+              {ind.label}
             </SelectItem>
           ))}
         </SelectContent>

@@ -12,7 +12,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { IndustrySelect } from "@/components/shared/IndustrySelect";
-import type { IndustryKey } from "@/lib/constants/industries";
 import type { IdeaData } from "@/lib/types/idea";
 
 interface IdeaFormProps {
@@ -26,7 +25,7 @@ export function IdeaForm({ open, onOpenChange, existing, onSaved }: IdeaFormProp
   const [title, setTitle] = useState(existing?.title ?? "");
   const [problem, setProblem] = useState(existing?.problemStatement ?? "");
   const [targetCustomer, setTargetCustomer] = useState(existing?.targetCustomer ?? "");
-  const [industry, setIndustry] = useState<IndustryKey>((existing?.industry as IndustryKey) ?? "");
+  const [industry, setIndustry] = useState<string>(existing?.industryId ?? "");
   const [notes, setNotes] = useState(existing?.notes ?? "");
   const [saving, setSaving] = useState(false);
 
@@ -38,7 +37,7 @@ export function IdeaForm({ open, onOpenChange, existing, onSaved }: IdeaFormProp
     }
     setSaving(true);
     try {
-      const payload = { title, problemStatement: problem, targetCustomer, industry, notes: notes || undefined };
+      const payload = { title, problemStatement: problem, targetCustomer, industryId: industry, notes: notes || undefined };
       const url = existing ? `/api/ideas/${existing.id}` : "/api/ideas";
       const method = existing ? "PUT" : "POST";
 

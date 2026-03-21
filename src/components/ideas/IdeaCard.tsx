@@ -1,10 +1,8 @@
 "use client";
 
 import { Lock, Globe } from "lucide-react";
-import { INDUSTRY_LABELS } from "@/lib/constants/industries";
 import { cn, formatScore, scoreBarGradient } from "@/lib/utils";
 import type { IdeaData } from "@/lib/types/idea";
-import type { IndustryKey } from "@/lib/constants/industries";
 
 interface IdeaCardProps {
   idea: IdeaData;
@@ -55,7 +53,7 @@ export function IdeaCard({ idea, isSelected, onSelect }: IdeaCardProps) {
                 color: "#92400e",
               }}
             >
-              {INDUSTRY_LABELS[idea.industry as IndustryKey] ?? idea.industry}
+              {idea.industry.label}
             </span>
           </div>
         </div>

@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ImportPreviewDialog } from "./ImportPreviewDialog";
-import type { CategorizedGroup } from "@/lib/types/import";
+import type { CategorizedGroup, StagedContact } from "@/lib/types/import";
 
 interface LinkedInImportProps {
   open: boolean;
@@ -100,6 +100,7 @@ export function LinkedInImport({
   const [step, setStep] = useState<Step>("instructions");
   const [uploading, setUploading] = useState(false);
   const [previewGroups, setPreviewGroups] = useState<CategorizedGroup[]>([]);
+  const [previewContacts, setPreviewContacts] = useState<StagedContact[]>([]);
   const [previewOpen, setPreviewOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -141,6 +142,7 @@ export function LinkedInImport({
 
       const data = await res.json();
       setPreviewGroups(data.groups);
+      setPreviewContacts(data.contacts ?? []);
       onOpenChange(false);
       setPreviewOpen(true);
     } catch {
@@ -244,6 +246,7 @@ export function LinkedInImport({
         open={previewOpen}
         onOpenChange={setPreviewOpen}
         groups={previewGroups}
+        contacts={previewContacts}
         onSaved={() => {
           setPreviewOpen(false);
           setStep("instructions");
