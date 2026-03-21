@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { computeFullScore } from "@/lib/scoring";
 import type { MemberWithProfile } from "@/lib/types/profile";
-import type { NetworkEntry } from "@prisma/client";
+import type { Contact, NetworkEntry } from "@prisma/client";
 
 export async function POST(
   _req: NextRequest,
@@ -29,19 +29,25 @@ export async function POST(
     return NextResponse.json({ error: "Only the idea submitter can evaluate" }, { status: 403 });
   }
 
-  // Fetch all workspace members with profiles + network entries
+  // Fetch all workspace members with profiles, network entries, and contacts
   const workspaceMembers = await prisma.workspaceMember.findMany({
     where: { workspaceId: member.workspaceId },
     include: {
       profile: {
-        include: { networkEntries: true },
+        include: {
+          networkEntries: { include: { industry: { select: { id: true, label: true } } } },
+          contacts: true,
+        },
       },
     },
   });
 
-  // Flatten all network entries across all members
   const allNetworkEntries: NetworkEntry[] = workspaceMembers.flatMap(
     (m) => m.profile?.networkEntries ?? []
+  );
+
+  const allContacts: Contact[] = workspaceMembers.flatMap(
+    (m) => m.profile?.contacts ?? []
   );
 
   const typedMembers: MemberWithProfile[] = workspaceMembers.map((m) => ({
@@ -57,13 +63,14 @@ export async function POST(
           updatedAt: m.profile.updatedAt,
           memberId: m.profile.memberId,
           networkEntries: m.profile.networkEntries,
+          contacts: m.profile.contacts,
         }
       : null,
   }));
 
   let scoreResult;
   try {
-    scoreResult = await computeFullScore(idea, typedMembers, allNetworkEntries);
+    scoreResult = await computeFullScore(idea, typedMembers, allNetworkEntries, allContacts);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Scoring failed";
     return NextResponse.json({ error: message }, { status: 503 });

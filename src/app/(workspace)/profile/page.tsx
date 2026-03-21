@@ -10,17 +10,24 @@ import { Separator } from "@/components/ui/separator";
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { NetworkEntryForm } from "@/components/profile/NetworkEntryForm";
 import { NetworkImportSection } from "@/components/profile/NetworkImportSection";
-import { INDUSTRY_LABELS } from "@/lib/constants/industries";
 import type { SkillKey } from "@/lib/constants/skills";
-import type { NetworkEntry } from "@prisma/client";
 import useSWR from "swr";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
+interface NetworkEntryWithIndustry {
+  id: string;
+  industryId: string;
+  industry: { id: string; label: string };
+  estimatedContacts: number;
+  notableRoles: string[];
+  connectionStrength: "WARM" | "MODERATE" | "COLD";
+}
+
 interface ProfileData {
   background: string;
   skills: SkillKey[];
-  networkEntries: NetworkEntry[];
+  networkEntries: NetworkEntryWithIndustry[];
 }
 
 const STRENGTH_LABELS = {
@@ -39,7 +46,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const { data: profile, mutate } = useSWR<ProfileData>("/api/profile", fetcher);
   const [editFormOpen, setEditFormOpen] = useState(false);
-  const [editingEntry, setEditingEntry] = useState<NetworkEntry | undefined>();
+  const [editingEntry, setEditingEntry] = useState<NetworkEntryWithIndustry | undefined>();
 
   async function deleteEntry(id: string) {
     const res = await fetch(`/api/network/${id}`, { method: "DELETE" });
@@ -51,7 +58,7 @@ export default function ProfilePage() {
     }
   }
 
-  function openEditEntry(entry: NetworkEntry) {
+  function openEditEntry(entry: NetworkEntryWithIndustry) {
     setEditingEntry(entry);
     setEditFormOpen(true);
   }
@@ -108,8 +115,7 @@ export default function ProfilePage() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-zinc-800">
-                        {INDUSTRY_LABELS[entry.industry as keyof typeof INDUSTRY_LABELS] ??
-                          entry.industry}
+                        {entry.industry.label}
                       </span>
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs font-medium ${STRENGTH_COLORS[entry.connectionStrength]}`}

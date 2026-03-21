@@ -7,6 +7,19 @@ datasource db {
 }
 
 // ─────────────────────────────────────────────────────────────
+// INDUSTRY LOOKUP TABLE
+// ─────────────────────────────────────────────────────────────
+model Industry {
+  id    String @id   // slug e.g. "enterprise-saas"
+  label String       // human-readable label
+
+  ideas                Idea[]
+  networkEntries       NetworkEntry[]
+  contacts             Contact[]
+  companyIndustryCache CompanyIndustryCache[]
+}
+
+// ─────────────────────────────────────────────────────────────
 // WORKSPACE
 // ─────────────────────────────────────────────────────────────
 model Workspace {
@@ -30,10 +43,10 @@ model WorkspaceMember {
   name        String   @default("")
   joinedAt    DateTime @default(now())
 
-  workspaceId    String
-  workspace      Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  profile        CofounderProfile?
-  submittedIdeas Idea[]
+  workspaceId           String
+  workspace             Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  profile               CofounderProfile?
+  submittedIdeas        Idea[]
   networkImportSessions NetworkImportSession[]
 
   @@unique([workspaceId, clerkUserId])
@@ -52,14 +65,16 @@ model CofounderProfile {
   memberId       String           @unique
   member         WorkspaceMember  @relation(fields: [memberId], references: [id], onDelete: Cascade)
   networkEntries NetworkEntry[]
+  contacts       Contact[]
 }
 
 // ─────────────────────────────────────────────────────────────
-// NETWORK ENTRIES
+// NETWORK ENTRIES (aggregate — kept for backward compat + manual entry)
 // ─────────────────────────────────────────────────────────────
 model NetworkEntry {
   id                 String             @id @default(cuid())
-  industry           String             // key from INDUSTRIES constant
+  industryId         String
+  industry           Industry           @relation(fields: [industryId], references: [id])
   estimatedContacts  Int
   notableRoles       String[]           // e.g. ["CTOs", "VCs"]
   connectionStrength ConnectionStrength
@@ -68,6 +83,8 @@ model NetworkEntry {
 
   profileId String
   profile   CofounderProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([industryId])
 }
 
 enum ConnectionStrength {
@@ -84,7 +101,8 @@ model Idea {
   title            String
   problemStatement String     @db.Text
   targetCustomer   String     @db.Text
-  industry         String     // key from INDUSTRIES constant
+  industryId       String
+  industry         Industry   @relation(fields: [industryId], references: [id])
   notes            String?    @db.Text
   visibility       Visibility @default(PRIVATE)
   createdAt        DateTime   @default(now())
@@ -98,6 +116,7 @@ model Idea {
 
   @@index([workspaceId, visibility])
   @@index([submitterId])
+  @@index([industryId])
 }
 
 enum Visibility {
@@ -111,17 +130,50 @@ enum Visibility {
 // ─────────────────────────────────────────────────────────────
 
 model CompanyIndustryCache {
-  domain    String   @id        // e.g. "stripe.com"
-  industry  String              // valid INDUSTRIES key
-  cachedAt  DateTime @default(now())
+  domain     String   @id        // e.g. "stripe.com"
+  industryId String
+  industry   Industry @relation(fields: [industryId], references: [id])
+  cachedAt   DateTime @default(now())
 }
 
 model NetworkImportSession {
   id        String   @id @default(cuid())
   memberId  String
-  groups    Json                // CategorizedGroup[]
+  groups    Json                // ImportSessionData (v2 envelope) or legacy CategorizedGroup[]
   expiresAt DateTime
   member    WorkspaceMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+// ─────────────────────────────────────────────────────────────
+// CONTACTS (individual contacts from imports or manual entry)
+// ─────────────────────────────────────────────────────────────
+
+enum ContactSource {
+  GOOGLE
+  LINKEDIN
+  MANUAL
+}
+
+model Contact {
+  id                 String             @id @default(cuid())
+  name               String?
+  company            String?
+  domain             String?
+  position           String?
+  industryId         String?
+  industry           Industry?          @relation(fields: [industryId], references: [id])
+  connectionStrength ConnectionStrength
+  source             ContactSource
+  embedding          Float[]            // embedding-ready; always [] until pgvector is added
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  profileId String
+  profile   CofounderProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@index([domain])
+  @@index([industryId])
 }
 
 // ─────────────────────────────────────────────────────────────

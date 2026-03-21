@@ -2,10 +2,15 @@ import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { INDUSTRIES } from "@/lib/constants/industries";
+import { INDUSTRY_IDS } from "@/lib/constants/industries";
 
 const updateSchema = z.object({
-  industry: z.enum([...INDUSTRIES] as [string, ...string[]]).optional(),
+  industryId: z
+    .string()
+    .refine((v) => (INDUSTRY_IDS as readonly string[]).includes(v), {
+      message: "Invalid industry",
+    })
+    .optional(),
   estimatedContacts: z.number().int().min(0).max(1_000_000).optional(),
   notableRoles: z.array(z.string().max(50)).max(10).optional(),
   connectionStrength: z.enum(["WARM", "MODERATE", "COLD"]).optional(),
@@ -42,6 +47,7 @@ export async function PUT(
   const updated = await prisma.networkEntry.update({
     where: { id },
     data: parsed.data,
+    include: { industry: { select: { id: true, label: true } } },
   });
 
   return NextResponse.json(updated);

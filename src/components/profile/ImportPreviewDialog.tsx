@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,13 +18,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { INDUSTRY_LABELS } from "@/lib/constants/industries";
-import type { CategorizedGroup } from "@/lib/types/import";
+import type { CategorizedGroup, StagedContact } from "@/lib/types/import";
+
+interface IndustryOption {
+  id: string;
+  label: string;
+}
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 interface ImportPreviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   groups: CategorizedGroup[];
+  contacts?: StagedContact[];
   onSaved: () => void;
 }
 
@@ -31,10 +39,20 @@ export function ImportPreviewDialog({
   open,
   onOpenChange,
   groups: initialGroups,
+  contacts: initialContacts = [],
   onSaved,
 }: ImportPreviewDialogProps) {
   const [groups, setGroups] = useState<CategorizedGroup[]>(initialGroups);
   const [saving, setSaving] = useState(false);
+
+  const { data: industries = [] } = useSWR<IndustryOption[]>(
+    "/api/industries",
+    fetcher,
+    { revalidateOnFocus: false },
+  );
+
+  const industryLabel = (id: string) =>
+    industries.find((i) => i.id === id)?.label ?? id;
 
   // Sync when the dialog opens with new groups (useState only initializes once)
   useEffect(() => {
@@ -64,7 +82,7 @@ export function ImportPreviewDialog({
       const res = await fetch("/api/network/import/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ groups }),
+        body: JSON.stringify({ groups, contacts: initialContacts }),
       });
 
       if (!res.ok) {
@@ -74,7 +92,10 @@ export function ImportPreviewDialog({
       }
 
       const data = await res.json();
-      toast.success(`Imported ${data.created} network group${data.created !== 1 ? "s" : ""}`);
+      const contactMsg = data.contactsCreated > 0
+        ? ` and ${data.contactsCreated} contact${data.contactsCreated !== 1 ? "s" : ""}`
+        : "";
+      toast.success(`Imported ${data.created} network group${data.created !== 1 ? "s" : ""}${contactMsg}`);
       onSaved();
       onOpenChange(false);
 
@@ -105,6 +126,11 @@ export function ImportPreviewDialog({
         <p className="text-sm text-zinc-500">
           Review the network groups identified from your contacts. Adjust
           connection strengths or remove groups before importing.
+          {initialContacts.length > 0 && (
+            <span className="block mt-1 text-zinc-400">
+              {initialContacts.length} individual contact{initialContacts.length !== 1 ? "s" : ""} will also be saved.
+            </span>
+          )}
         </p>
 
         {groups.length === 0 ? (
@@ -121,8 +147,7 @@ export function ImportPreviewDialog({
                 <div className="flex-1 min-w-0 space-y-1.5">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-zinc-900">
-                      {INDUSTRY_LABELS[g.industry as keyof typeof INDUSTRY_LABELS] ??
-                        g.industry}
+                      {industryLabel(g.industryId)}
                     </span>
                     <span className="text-xs text-zinc-400">
                       ~{g.estimatedContacts.toLocaleString()} contacts
