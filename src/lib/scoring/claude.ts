@@ -92,7 +92,7 @@ function buildTeamContext(members: MemberWithProfile[]): string {
     skills: m.profile?.skills ?? [],
     background: m.profile?.background ?? "",
     network: (m.profile?.networkEntries ?? []).map((e) => ({
-      industry: e.industry,
+      industryId: e.industryId,
       estimatedContacts: e.estimatedContacts,
       notableRoles: e.notableRoles,
       connectionStrength: e.connectionStrength,
@@ -113,7 +113,7 @@ function buildIdeaPayload(idea: Idea): string {
         title: idea.title,
         problem: idea.problemStatement,
         targetCustomer: idea.targetCustomer,
-        industry: idea.industry,
+        industryId: idea.industryId,
         notes: idea.notes ?? null,
       },
     },

@@ -8,7 +8,8 @@ export interface IdeaData {
   title: string;
   problemStatement: string;
   targetCustomer: string;
-  industry: string;
+  industryId: string;
+  industry: { id: string; label: string };
   notes: string | null;
   visibility: Visibility;
   createdAt: Date;

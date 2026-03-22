@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { NetworkEntryForm } from "./NetworkEntryForm";
 import { LinkedInImport } from "./LinkedInImport";
 import { ImportPreviewDialog } from "./ImportPreviewDialog";
-import type { CategorizedGroup } from "@/lib/types/import";
+import { parseSessionData } from "@/lib/types/import";
+import type { CategorizedGroup, StagedContact } from "@/lib/types/import";
 
 interface NetworkImportSectionProps {
   onSaved: () => void;
@@ -23,6 +24,7 @@ export function NetworkImportSection({ onSaved }: NetworkImportSectionProps) {
   const [linkedInOpen, setLinkedInOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewGroups, setPreviewGroups] = useState<CategorizedGroup[]>([]);
+  const [previewContacts, setPreviewContacts] = useState<StagedContact[]>([]);
 
   // On mount, check for ?google-import=<sessionId> in URL
   useEffect(() => {
@@ -45,8 +47,10 @@ export function NetworkImportSection({ onSaved }: NetworkImportSectionProps) {
     fetch("/api/network/import/session")
       .then((r) => r.json())
       .then((data) => {
-        if (data.groups && data.groups.length > 0) {
-          setPreviewGroups(data.groups as CategorizedGroup[]);
+        const { groups, contacts } = parseSessionData(data.groups);
+        if (groups.length > 0 || contacts.length > 0) {
+          setPreviewGroups(groups);
+          setPreviewContacts(contacts);
           setPreviewOpen(true);
         } else {
           toast.error("Import session expired. Please try again.");
@@ -135,6 +139,7 @@ export function NetworkImportSection({ onSaved }: NetworkImportSectionProps) {
         open={previewOpen}
         onOpenChange={handlePreviewClose}
         groups={previewGroups}
+        contacts={previewContacts}
         onSaved={() => {
           router.replace("/profile");
           onSaved();

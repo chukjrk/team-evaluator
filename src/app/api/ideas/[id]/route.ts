@@ -2,15 +2,26 @@ import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { INDUSTRIES } from "@/lib/constants/industries";
+import { INDUSTRY_IDS } from "@/lib/constants/industries";
 
 const updateSchema = z.object({
   title: z.string().min(3).max(100).optional(),
   problemStatement: z.string().min(10).max(2000).optional(),
   targetCustomer: z.string().min(5).max(500).optional(),
-  industry: z.enum([...INDUSTRIES] as [string, ...string[]]).optional(),
+  industryId: z
+    .string()
+    .refine((v) => (INDUSTRY_IDS as readonly string[]).includes(v), {
+      message: "Invalid industry",
+    })
+    .optional(),
   notes: z.string().max(1000).nullable().optional(),
 });
+
+const ideaInclude = {
+  submitter: { select: { id: true, name: true, email: true } },
+  industry: { select: { id: true, label: true } },
+  score: true,
+} as const;
 
 async function resolveIdea(userId: string, ideaId: string) {
   const member = await prisma.workspaceMember.findFirst({
@@ -20,10 +31,7 @@ async function resolveIdea(userId: string, ideaId: string) {
 
   const idea = await prisma.idea.findFirst({
     where: { id: ideaId, workspaceId: member.workspaceId },
-    include: {
-      submitter: { select: { id: true, name: true, email: true } },
-      score: true,
-    },
+    include: ideaInclude,
   });
   if (!idea) return { error: "Not found", status: 404 as const };
 
@@ -74,10 +82,7 @@ export async function PUT(
   const updated = await prisma.idea.update({
     where: { id },
     data: parsed.data,
-    include: {
-      submitter: { select: { id: true, name: true, email: true } },
-      score: true,
-    },
+    include: ideaInclude,
   });
 
   return NextResponse.json(updated);
