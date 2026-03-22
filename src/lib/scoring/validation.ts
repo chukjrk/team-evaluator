@@ -121,7 +121,8 @@ export async function generateValidationPlan(
   score: IdeaScore,
   members: MemberWithProfile[],
   allContacts: Contact[],
-  allNetworkEntries: NetworkEntry[]
+  allNetworkEntries: NetworkEntry[],
+  additionalContext?: string
 ): Promise<StoredValidationPlan> {
   console.log("[validation] generateValidationPlan start", {
     ideaId: idea.id,
@@ -186,7 +187,11 @@ export async function generateValidationPlan(
             },
             {
               type: "text",
-              text: `IDEA AND EVALUATION:\n\n${buildIdeaAndScorePayload(idea, score)}`,
+              text: `IDEA AND EVALUATION:\n\n${buildIdeaAndScorePayload(idea, score)}${
+                additionalContext
+                  ? `\n\nADDITIONAL CONTEXT FROM THE TEAM:\n${additionalContext}`
+                  : ""
+              }`,
             },
           ],
         },

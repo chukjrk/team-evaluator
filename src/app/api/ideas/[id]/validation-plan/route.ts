@@ -33,13 +33,23 @@ export async function GET(
 }
 
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+
+  let additionalContext: string | undefined;
+  try {
+    const body = await req.json();
+    if (typeof body?.additionalContext === "string" && body.additionalContext.trim()) {
+      additionalContext = body.additionalContext.trim();
+    }
+  } catch {
+    // body is optional — ignore parse errors
+  }
 
   const member = await prisma.workspaceMember.findFirst({
     where: { clerkUserId: userId },
@@ -107,7 +117,8 @@ export async function POST(
       idea.score,
       typedMembers,
       allContacts,
-      allNetworkEntries
+      allNetworkEntries,
+      additionalContext
     );
   } catch (err) {
     console.error("[validation-plan route] generateValidationPlan threw:", err);
