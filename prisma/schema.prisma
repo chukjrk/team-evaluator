@@ -48,6 +48,7 @@ model WorkspaceMember {
   profile               CofounderProfile?
   submittedIdeas        Idea[]
   networkImportSessions NetworkImportSession[]
+  triggeredPlans        ValidationPlan[]
 
   @@unique([workspaceId, clerkUserId])
   @@index([clerkUserId])
@@ -112,7 +113,8 @@ model Idea {
   workspace   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   submitterId String
   submitter   WorkspaceMember @relation(fields: [submitterId], references: [id])
-  score       IdeaScore?
+  score           IdeaScore?
+  validationPlan  ValidationPlan?
 
   @@index([workspaceId, visibility])
   @@index([submitterId])
@@ -174,6 +176,21 @@ model Contact {
   @@index([profileId])
   @@index([domain])
   @@index([industryId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// VALIDATION PLANS (AI-generated, workspace-visible, regenerable)
+// ─────────────────────────────────────────────────────────────
+model ValidationPlan {
+  id           String   @id @default(cuid())
+  content      Json     // StoredValidationPlan
+  generatedAt  DateTime @default(now())
+  modelVersion String   @default("claude-sonnet-4-6")
+
+  ideaId        String          @unique
+  idea          Idea            @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  triggeredById String
+  triggeredBy   WorkspaceMember @relation(fields: [triggeredById], references: [id])
 }
 
 // ─────────────────────────────────────────────────────────────

@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { RefreshCw, Pencil, Trash2, Globe, Lock } from "lucide-react";
+import { RefreshCw, Pencil, Trash2, Globe, Lock, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -17,6 +16,8 @@ import { IdeaSkillCoverage } from "./IdeaSkillCoverage";
 import { TimeEstimateChip } from "./TimeEstimateChip";
 import { AIInsightCard } from "./AIInsightCard";
 import { ScoreLoadingState } from "./ScoreLoadingState";
+import { ValidationPlanPanel } from "./ValidationPlanPanel";
+import { useValidationPlan } from "@/hooks/useValidationPlan";
 import type { IdeaData, Visibility } from "@/lib/types/idea";
 import type { StoredReasoning, Recommendation } from "@/lib/types/scoring";
 
@@ -36,7 +37,11 @@ export function EvaluationPanel({
   onOpenEdit,
 }: EvaluationPanelProps) {
   const [evaluating, setEvaluating] = useState(false);
+  const [generatingPlan, setGeneratingPlan] = useState(false);
+  const [showPlan, setShowPlan] = useState(false);
   const isOwner = idea.submitterId === currentMemberId;
+
+  const { plan, mutate: mutatePlan } = useValidationPlan(idea.score ? idea.id : null);
 
   async function handleEvaluate() {
     setEvaluating(true);
@@ -49,13 +54,33 @@ export function EvaluationPanel({
         toast.error(data.error ?? "Evaluation failed");
         return;
       }
-      // Merge the new score into the idea object for the parent
       onIdeaUpdated({ ...idea, score: data });
       toast.success("Evaluation complete");
     } catch {
       toast.error("Something went wrong during evaluation");
     } finally {
       setEvaluating(false);
+    }
+  }
+
+  async function handleGeneratePlan() {
+    setGeneratingPlan(true);
+    try {
+      const res = await fetch(`/api/ideas/${idea.id}/validation-plan`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "Failed to generate validation plan");
+        return;
+      }
+      await mutatePlan(data, false);
+      setShowPlan(true);
+      toast.success("Validation plan ready");
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setGeneratingPlan(false);
     }
   }
 
@@ -232,6 +257,75 @@ export function EvaluationPanel({
                 year: "numeric",
               })}
             </p>
+
+            {/* Validation Plan section */}
+            <div className="border-t border-zinc-100 pt-4">
+              {plan && showPlan ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <ClipboardList className="h-3.5 w-3.5 text-zinc-500" />
+                      <span className="text-xs font-semibold text-zinc-700">Validation Plan</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2 text-xs text-zinc-400 hover:text-zinc-600"
+                        onClick={() => setShowPlan(false)}
+                      >
+                        Hide
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-xs"
+                        onClick={handleGeneratePlan}
+                        disabled={generatingPlan}
+                      >
+                        <RefreshCw className={`mr-1 h-3 w-3 ${generatingPlan ? "animate-spin" : ""}`} />
+                        {generatingPlan ? "Regenerating..." : "Regenerate"}
+                      </Button>
+                    </div>
+                  </div>
+                  <ValidationPlanPanel
+                    plan={plan.content}
+                    generatedAt={plan.generatedAt}
+                    triggeredByName={plan.triggeredBy.name}
+                  />
+                </div>
+              ) : plan && !showPlan ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full text-xs"
+                  onClick={() => setShowPlan(true)}
+                >
+                  <ClipboardList className="mr-1.5 h-3.5 w-3.5" />
+                  View Validation Plan
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="w-full text-xs"
+                  onClick={handleGeneratePlan}
+                  disabled={generatingPlan}
+                >
+                  {generatingPlan ? (
+                    <>
+                      <RefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                      Generating Plan...
+                    </>
+                  ) : (
+                    <>
+                      <ClipboardList className="mr-1.5 h-3.5 w-3.5" />
+                      Generate Validation Plan
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
           </>
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
