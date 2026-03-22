@@ -10,6 +10,7 @@ import { IdeaCard } from "@/components/ideas/IdeaCard";
 import { IdeaForm } from "@/components/ideas/IdeaForm";
 import { IdeaFilters, type IdeaFilterState } from "@/components/ideas/IdeaFilters";
 import { ValidationPlanTree } from "@/components/evaluation/ValidationPlanTree";
+import { GeneratePlanDialog } from "@/components/evaluation/GeneratePlanDialog";
 import { useIdeas } from "@/hooks/useIdeas";
 import { useValidationPlan } from "@/hooks/useValidationPlan";
 import type { IdeaData } from "@/lib/types/idea";
@@ -32,6 +33,8 @@ export function CenterPanel({
     visibility: "all",
   });
   const [generatingPlan, setGeneratingPlan] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const selectedIdea = ideas.find((i) => i.id === selectedIdeaId) ?? null;
   const hasScore = !!selectedIdea?.score;
@@ -52,12 +55,20 @@ export function CenterPanel({
     onIdeaUpdate(idea);
   }
 
-  async function handleGeneratePlan() {
+  function openGenerateDialog(regenerating = false) {
+    setIsRegenerating(regenerating);
+    setDialogOpen(true);
+  }
+
+  async function handleGeneratePlan(additionalContext: string) {
     if (!selectedIdeaId) return;
+    setDialogOpen(false);
     setGeneratingPlan(true);
     try {
       const res = await fetch(`/api/ideas/${selectedIdeaId}/validation-plan`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ additionalContext: additionalContext || undefined }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -122,6 +133,14 @@ export function CenterPanel({
         />
       </div>
 
+      <GeneratePlanDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onGenerate={handleGeneratePlan}
+        isRegenerating={isRegenerating}
+        loading={generatingPlan}
+      />
+
       {/* ── Validation Plan sub-panel ─────────────────────────────── */}
       <div className="flex-1 min-w-0 flex flex-col bg-white">
         {/* Header */}
@@ -140,7 +159,7 @@ export function CenterPanel({
               size="sm"
               variant="outline"
               className="h-7 px-2 text-xs shrink-0"
-              onClick={handleGeneratePlan}
+              onClick={() => openGenerateDialog(true)}
               disabled={generatingPlan}
             >
               <RefreshCw
@@ -181,7 +200,7 @@ export function CenterPanel({
               <p className="text-xs text-zinc-300 mt-1 mb-5">
                 Generate an AI-powered step-by-step validation roadmap
               </p>
-              <Button size="sm" onClick={handleGeneratePlan} disabled={generatingPlan}>
+              <Button size="sm" onClick={() => openGenerateDialog(false)} disabled={generatingPlan}>
                 {generatingPlan ? (
                   <>
                     <RefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin" />
