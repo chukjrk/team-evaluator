@@ -12,7 +12,8 @@ import type { IdeaData } from "@/lib/types/idea";
 const MIN_LEFT = 260;
 const MAX_LEFT = 560;
 const MIN_RIGHT = 360;
-const MAX_RIGHT = 720;
+const DEFAULT_RIGHT = 760;
+const MAX_RIGHT = DEFAULT_RIGHT;
 
 type MobileTab = "team" | "ideas" | "detail";
 
@@ -26,7 +27,7 @@ export function AppShell({ currentMemberId }: AppShellProps) {
   const { ideas, mutate } = useIdeas();
 
   const [leftWidth, setLeftWidth] = useState(360);
-  const [rightWidth, setRightWidth] = useState(500);
+  const [rightWidth, setRightWidth] = useState(DEFAULT_RIGHT);
 
   // Refs for drag state — using ref so event listeners don't become stale
   const leftDrag = useRef<{ startX: number; startWidth: number } | null>(null);
