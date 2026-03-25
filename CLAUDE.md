@@ -115,3 +115,9 @@ Key routes:
 ### UI Components
 
 shadcn/ui components live in `src/components/ui/`. Feature components are organized by domain: `components/layout/`, `components/ideas/`, `components/evaluation/`, `components/profile/`, `components/team/`, `components/shared/`.
+
+#### Component granularity
+
+Extract a feature into its own file when it owns distinct state/fetching, could render from a different parent, or exceeds ~60 lines inline. Keep it inline when it's truly one-off, stateless, or extracting it would immediately require threading props back up.
+
+**Prop depth limit:** max 2 levels of threading. If a grandchild needs grandparent data, lift the fetch into the grandchild (preferred) or use context — never thread props through 3+ components.
