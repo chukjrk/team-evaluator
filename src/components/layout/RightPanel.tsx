@@ -1,9 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { ClipboardList, BarChart2 } from "lucide-react";
 import { IdeaForm } from "@/components/ideas/IdeaForm";
 import { EvaluationPanel } from "@/components/evaluation/EvaluationPanel";
+import { ValidationPlanTab } from "@/components/evaluation/ValidationPlanTab";
+import { cn } from "@/lib/utils";
 import type { IdeaData } from "@/lib/types/idea";
+
+type RightTab = "evaluation" | "validation";
 
 interface RightPanelProps {
   idea: IdeaData | null;
@@ -19,6 +24,7 @@ export function RightPanel({
   onIdeaDeleted,
 }: RightPanelProps) {
   const [editOpen, setEditOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<RightTab>("evaluation");
 
   if (!idea) {
     return (
@@ -34,15 +40,50 @@ export function RightPanel({
     );
   }
 
+  const tabs: { id: RightTab; label: string; icon: React.ReactNode }[] = [
+    { id: "evaluation", label: "Evaluation", icon: <BarChart2 className="h-3.5 w-3.5" /> },
+    { id: "validation", label: "Validation Plan", icon: <ClipboardList className="h-3.5 w-3.5" /> },
+  ];
+
   return (
-    <div className="h-full bg-white">
-      <EvaluationPanel
-        idea={idea}
-        currentMemberId={currentMemberId}
-        onIdeaUpdated={onIdeaUpdated}
-        onIdeaDeleted={onIdeaDeleted}
-        onOpenEdit={() => setEditOpen(true)}
-      />
+    <div className="flex flex-col h-full bg-white">
+      {/* Tab bar */}
+      <div className="shrink-0 border-b border-zinc-200 bg-white px-4">
+        <div className="flex items-center gap-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "relative flex items-center gap-1.5 px-3 py-3 text-xs font-medium transition-colors cursor-pointer",
+                activeTab === tab.id
+                  ? "text-violet-600"
+                  : "text-zinc-400 hover:text-zinc-600"
+              )}
+            >
+              {activeTab === tab.id && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-violet-500" />
+              )}
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {activeTab === "evaluation" && (
+        <div className="flex flex-col flex-1 min-h-0">
+          <EvaluationPanel
+            idea={idea}
+            currentMemberId={currentMemberId}
+            onIdeaUpdated={onIdeaUpdated}
+            onIdeaDeleted={onIdeaDeleted}
+            onOpenEdit={() => setEditOpen(true)}
+          />
+        </div>
+      )}
+
+      {activeTab === "validation" && <ValidationPlanTab idea={idea} />}
 
       <IdeaForm
         open={editOpen}
