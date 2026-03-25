@@ -194,7 +194,7 @@ export function AppShell({ currentMemberId }: AppShellProps) {
       <div className="flex lg:hidden flex-col h-screen overflow-hidden">
         {/* Active panel fills remaining space */}
         <div className="flex-1 min-h-0">
-          {activeTab === "team" && <LeftPanel />}
+          {activeTab === "team" && <LeftPanel onCollapse={() => {}} />}
           {activeTab === "ideas" && (
             <CenterPanel
               selectedIdeaId={selectedIdeaId}
