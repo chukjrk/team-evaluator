@@ -352,7 +352,7 @@ export function ValidationPlanTree({
           {plan.successCriteria.map((criterion, i) => {
             const done = checkedCriteria.has(i);
             return (
-              <button
+              <div
                 key={i}
                 onClick={() => toggleCriterion(i)}
                 className="w-full flex items-start gap-2.5 text-left group rounded-lg border border-transparent hover:border-zinc-100 hover:bg-zinc-50 px-1.5 py-1.5 transition-colors cursor-pointer"
@@ -367,7 +367,7 @@ export function ValidationPlanTree({
                 >
                   {criterion}
                 </p>
-              </button>
+              </div>
             );
           })}
         </div>

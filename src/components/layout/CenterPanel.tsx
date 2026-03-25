@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Info } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -46,7 +47,14 @@ export function CenterPanel({
       {/* Header */}
       <div className="shrink-0 border-b border-zinc-200 bg-white px-4 py-3">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-semibold text-zinc-900">Ideas</h2>
+          <div className="flex items-center gap-2">
+            <Link href="/settings">
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 rounded-full text-zinc-400 hover:text-zinc-500" title="Workspace info">
+                <Info className="h-5 w-5" />
+              </Button>
+            </Link>
+            <h2 className="text-sm font-semibold text-zinc-900">Ideas</h2>
+          </div>
           <Button size="sm" onClick={() => setNewIdeaOpen(true)}>
             <Plus className="mr-1.5 h-4 w-4" />
             New

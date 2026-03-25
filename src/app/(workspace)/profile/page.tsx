@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { NetworkEntryForm } from "@/components/profile/NetworkEntryForm";
 import { NetworkImportSection } from "@/components/profile/NetworkImportSection";
+import { InviteBanner } from "@/components/shared/InviteBanner";
 import type { SkillKey } from "@/lib/constants/skills";
 import useSWR from "swr";
 
@@ -78,6 +79,9 @@ export default function ProfilePage() {
             Go to Dashboard
           </Button>
         </div>
+
+        {/* Invite */}
+        <InviteBanner />
 
         {/* Profile / Skills */}
         <Card>

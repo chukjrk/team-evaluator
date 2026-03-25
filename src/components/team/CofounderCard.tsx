@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { SKILL_LABELS, SKILLS_TAXONOMY, type SkillKey } from "@/lib/constants/skills";
 import type { MemberWithProfile } from "@/lib/types/profile";
 
@@ -37,7 +36,7 @@ export function CofounderCard({ member, isCurrentUser = false }: CofounderCardPr
   const overflow = skills.length - SHOW_MAX;
 
   const card = (
-    <div className={`rounded-lg border border-zinc-200 bg-white p-3 space-y-2${isCurrentUser ? " cursor-pointer hover:border-zinc-300 hover:bg-zinc-50 transition-colors" : ""}`}>
+    <div className="rounded-lg border border-zinc-200 bg-white p-3 space-y-2">
       <div className="flex items-center gap-2.5">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-xs font-semibold text-white">
           {initials || "?"}
@@ -82,8 +81,5 @@ export function CofounderCard({ member, isCurrentUser = false }: CofounderCardPr
     </div>
   );
 
-  if (isCurrentUser) {
-    return <Link href="/profile">{card}</Link>;
-  }
   return card;
 }
