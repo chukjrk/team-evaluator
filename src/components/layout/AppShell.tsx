@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Users, Lightbulb, BarChart2 } from "lucide-react";
+import { Users, Lightbulb, BarChart2, ChevronRight } from "lucide-react";
 import { LeftPanel } from "./LeftPanel";
 import { CenterPanel } from "./CenterPanel";
 import { RightPanel } from "./RightPanel";
@@ -12,8 +12,8 @@ import type { IdeaData } from "@/lib/types/idea";
 const MIN_LEFT = 260;
 const MAX_LEFT = 560;
 const MIN_RIGHT = 360;
-const DEFAULT_RIGHT = 760;
-const MAX_RIGHT = DEFAULT_RIGHT;
+const DEFAULT_RIGHT = 860;
+const MAX_RIGHT = 960;
 
 type MobileTab = "team" | "ideas" | "detail";
 
@@ -28,6 +28,7 @@ export function AppShell({ currentMemberId }: AppShellProps) {
 
   const [leftWidth, setLeftWidth] = useState(360);
   const [rightWidth, setRightWidth] = useState(DEFAULT_RIGHT);
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
 
   // Refs for drag state — using ref so event listeners don't become stale
   const leftDrag = useRef<{ startX: number; startWidth: number } | null>(null);
@@ -128,20 +129,35 @@ export function AppShell({ currentMemberId }: AppShellProps) {
       {/* ── Desktop layout (≥ 1024px) ─────────────────────────────────────────── */}
       <div className="hidden lg:flex h-screen overflow-hidden select-none">
         {/* Left panel */}
-        <div style={{ width: leftWidth, minWidth: leftWidth, maxWidth: leftWidth }} className="flex-shrink-0">
-          <LeftPanel />
-        </div>
-
-        {/* Left resize handle */}
-        <div
-          onMouseDown={onLeftMouseDown}
-          className="group w-1.5 flex-shrink-0 cursor-col-resize bg-zinc-100 hover:bg-zinc-300 active:bg-violet-400 transition-colors"
-          title="Drag to resize"
-        >
-          <div className="h-full w-full group-hover:opacity-100 opacity-0 flex items-center justify-center">
-            <div className="h-8 w-0.5 rounded-full bg-zinc-400" />
+        {!leftCollapsed && (
+          <div style={{ width: leftWidth, minWidth: leftWidth, maxWidth: leftWidth }} className="flex-shrink-0">
+            <LeftPanel onCollapse={() => setLeftCollapsed(true)} />
           </div>
-        </div>
+        )}
+
+        {/* Left resize handle (only when expanded) */}
+        {!leftCollapsed && (
+          <div
+            onMouseDown={onLeftMouseDown}
+            className="group w-1.5 flex-shrink-0 cursor-col-resize bg-zinc-100 hover:bg-zinc-300 active:bg-violet-400 transition-colors"
+            title="Drag to resize"
+          >
+            <div className="h-full w-full group-hover:opacity-100 opacity-0 flex items-center justify-center">
+              <div className="h-8 w-0.5 rounded-full bg-zinc-400" />
+            </div>
+          </div>
+        )}
+
+        {/* Expand button (only when collapsed) */}
+        {leftCollapsed && (
+          <button
+            onClick={() => setLeftCollapsed(false)}
+            className="flex-shrink-0 w-8 flex flex-col items-center justify-start pt-3 border-r border-zinc-200 bg-white hover:bg-zinc-50 transition-colors"
+            title="Expand panel"
+          >
+            <ChevronRight className="h-4 w-4 text-zinc-400" />
+          </button>
+        )}
 
         {/* Center panel */}
         <div className="flex-1 min-w-0">
