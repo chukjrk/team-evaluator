@@ -275,7 +275,7 @@ export function NetworkGraph({ entries, onEdit, onDelete }: Props) {
       {/* Graph container */}
       <div
         ref={containerRef}
-        className="relative w-full overflow-hidden rounded-xl border border-zinc-100 bg-zinc-50"
+        className="relative flex w-full items-center justify-center overflow-hidden rounded-xl border border-zinc-100 bg-zinc-50"
         style={{ cursor: isDragging ? "grabbing" : "default" }}
       >
         <svg
