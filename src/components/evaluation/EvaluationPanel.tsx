@@ -4,7 +4,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { RefreshCw, Pencil, Trash2, Globe, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -49,7 +48,6 @@ export function EvaluationPanel({
         toast.error(data.error ?? "Evaluation failed");
         return;
       }
-      // Merge the new score into the idea object for the parent
       onIdeaUpdated({ ...idea, score: data });
       toast.success("Evaluation complete");
     } catch {

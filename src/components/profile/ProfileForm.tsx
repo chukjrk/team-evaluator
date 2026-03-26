@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,6 +21,10 @@ export function ProfileForm({
   const [background, setBackground] = useState(initialBackground);
   const [skills, setSkills] = useState<SkillKey[]>(initialSkills);
   const [saving, setSaving] = useState(false);
+
+  // Sync when SWR delivers profile data after initial mount
+  useEffect(() => { setBackground(initialBackground); }, [initialBackground]);
+  useEffect(() => { setSkills(initialSkills); }, [initialSkills]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -49,7 +53,7 @@ export function ProfileForm({
     <form onSubmit={handleSave} className="space-y-5">
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-zinc-700">Background</label>
-        <p className="text-xs text-zinc-400">
+        <p className="text-xs font-medium text-zinc-500">
           Describe your experience, education, and what domains you know well.
         </p>
         <Textarea
@@ -58,12 +62,13 @@ export function ProfileForm({
           placeholder="e.g. 8 years in enterprise software sales. Former PM at a Series B fintech. Deep knowledge of B2B procurement cycles and healthcare compliance..."
           rows={4}
           maxLength={2000}
+          className="placeholder:font-light placeholder:text-zinc-400"
         />
       </div>
 
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-zinc-700">Skills</label>
-        <p className="text-xs text-zinc-400">
+        <p className="text-xs font-medium text-zinc-500">
           Select all skills that apply to you across technical, business, and domain areas.
         </p>
         <SkillSelect value={skills} onChange={setSkills} />

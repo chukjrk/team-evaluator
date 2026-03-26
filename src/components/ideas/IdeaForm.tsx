@@ -65,7 +65,7 @@ export function IdeaForm({ open, onOpenChange, existing, onSaved }: IdeaFormProp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>{existing ? "Edit Idea" : "Submit a New Idea"}</DialogTitle>
         </DialogHeader>

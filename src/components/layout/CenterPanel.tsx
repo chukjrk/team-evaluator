@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Info } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -42,27 +43,32 @@ export function CenterPanel({
   }
 
   return (
-    <div className="flex h-full flex-col border-r border-zinc-200 bg-zinc-50">
+    <div className="flex flex-col h-full bg-zinc-50">
       {/* Header */}
       <div className="shrink-0 border-b border-zinc-200 bg-white px-4 py-3">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-semibold text-zinc-900">Ideas</h2>
+          <div className="flex items-center gap-2">
+            <Link href="/settings">
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 rounded-full text-zinc-400 hover:text-zinc-500" title="Workspace info">
+                <Info className="h-5 w-5" />
+              </Button>
+            </Link>
+            <h2 className="text-sm font-semibold text-zinc-900">Ideas</h2>
+          </div>
           <Button size="sm" onClick={() => setNewIdeaOpen(true)}>
             <Plus className="mr-1.5 h-4 w-4" />
-            New Idea
+            New
           </Button>
         </div>
         <IdeaFilters filters={filters} onChange={setFilters} />
       </div>
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 h-0">
         <div className="space-y-2 p-4">
           {isLoading ? (
-            <>
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-16 w-full rounded-lg" />
-              ))}
-            </>
+            [1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-16 w-full rounded-lg" />
+            ))
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <p className="text-sm font-medium text-zinc-500">No ideas yet</p>

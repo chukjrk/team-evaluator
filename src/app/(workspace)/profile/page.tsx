@@ -2,14 +2,14 @@
 
 import { useState, Suspense } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { NetworkEntryForm } from "@/components/profile/NetworkEntryForm";
 import { NetworkImportSection } from "@/components/profile/NetworkImportSection";
+import { NetworkGraph } from "@/components/profile/NetworkGraph";
+import { InviteBanner } from "@/components/shared/InviteBanner";
 import type { SkillKey } from "@/lib/constants/skills";
 import useSWR from "swr";
 
@@ -30,17 +30,6 @@ interface ProfileData {
   networkEntries: NetworkEntryWithIndustry[];
 }
 
-const STRENGTH_LABELS = {
-  WARM: "Warm",
-  MODERATE: "Moderate",
-  COLD: "Cold",
-} as const;
-
-const STRENGTH_COLORS = {
-  WARM: "bg-green-100 text-green-700",
-  MODERATE: "bg-yellow-100 text-yellow-700",
-  COLD: "bg-zinc-100 text-zinc-600",
-} as const;
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -79,6 +68,9 @@ export default function ProfilePage() {
           </Button>
         </div>
 
+        {/* Invite */}
+        <InviteBanner />
+
         {/* Profile / Skills */}
         <Card>
           <CardHeader>
@@ -102,54 +94,11 @@ export default function ProfilePage() {
             <Suspense>
               <NetworkImportSection onSaved={() => mutate()} />
             </Suspense>
-            {!profile?.networkEntries?.length && (
-              <p className="text-sm text-zinc-400">
-                No network entries yet. Add segments of your network to help
-                score idea-network fit.
-              </p>
-            )}
-            {profile?.networkEntries?.map((entry, i) => (
-              <div key={entry.id}>
-                {i > 0 && <Separator className="mb-3" />}
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-zinc-800">
-                        {entry.industry.label}
-                      </span>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${STRENGTH_COLORS[entry.connectionStrength]}`}
-                      >
-                        {STRENGTH_LABELS[entry.connectionStrength]}
-                      </span>
-                    </div>
-                    <p className="text-xs text-zinc-500">
-                      ~{entry.estimatedContacts.toLocaleString()} contacts
-                      {entry.notableRoles.length > 0 &&
-                        ` · ${entry.notableRoles.join(", ")}`}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={() => openEditEntry(entry)}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-red-400 hover:text-red-600"
-                      onClick={() => deleteEntry(entry.id)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
+            <NetworkGraph
+              entries={profile?.networkEntries ?? []}
+              onEdit={openEditEntry}
+              onDelete={deleteEntry}
+            />
           </CardContent>
         </Card>
       </div>
