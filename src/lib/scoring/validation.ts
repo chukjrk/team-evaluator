@@ -47,7 +47,7 @@ Rules:
 - networkReachOuts: only include people from the provided contacts list; if no relevant contacts exist, return an empty array; max 5 reach-outs. Keep outreachAngle to 1-2 sentences.
 - successCriteria: exactly 3 specific, measurable criteria (1 sentence each)
 - reevaluationTriggers: exactly 2 findings that would materially change the score (1 sentence each)
-- Be concise throughout — the entire JSON response must fit within 1500 tokens
+- Be concise throughout — keep descriptions tight, avoid filler sentences
 - Do not use the words "innovative", "exciting", "promising", or "potential"
 - Do not include any text outside the JSON object`;
 
@@ -168,7 +168,7 @@ export async function generateValidationPlan(
   try {
     message = await client.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 1500,
+      max_tokens: 3000,
       system: [
         {
           type: "text",
