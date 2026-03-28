@@ -20,10 +20,7 @@ Break all current changes into separate, logical commits — one per coherent un
       - Prefix with: `feat:`, `fix:`, `refactor:`, `chore:`, `style:`, `docs:`
       - If `$ARGUMENTS` was provided, append it as context to every message.
       - Keep the first line under 72 characters.
-   e. Commit using a HEREDOC with the co-author trailer:
-      ```
-      Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
-      ```
+   e. Commit using a HEREDOC.
    f. Confirm the commit succeeded before moving to the next group.
 5. After all groups are committed, run `git status` to confirm the working tree is clean.
 6. Output a summary: each commit hash + message, and any warnings (e.g. skipped or excluded files).
