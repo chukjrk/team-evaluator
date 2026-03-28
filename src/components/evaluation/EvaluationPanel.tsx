@@ -17,7 +17,7 @@ import { TimeEstimateChip } from "./TimeEstimateChip";
 import { AIInsightCard } from "./AIInsightCard";
 import { ScoreLoadingState } from "./ScoreLoadingState";
 import type { IdeaData, Visibility } from "@/lib/types/idea";
-import type { StoredReasoning, Recommendation } from "@/lib/types/scoring";
+import type { AIScoreResult, StoredReasoning, Recommendation } from "@/lib/types/scoring";
 
 interface EvaluationPanelProps {
   idea: IdeaData;
@@ -84,6 +84,7 @@ export function EvaluationPanel({
   }
 
   const reasoning = idea.score?.aiReasoning as StoredReasoning | undefined;
+  const reevalScore = idea.score?.reevalScore as AIScoreResult | null | undefined;
 
   const RECOMMENDATION_CONFIG: Record<
     Recommendation,
@@ -221,6 +222,62 @@ export function EvaluationPanel({
                 reasoning={reasoning}
               />
             )}
+
+            {/* Post-validation re-evaluation block */}
+            {reevalScore && idea.score.reevalAt && (() => {
+              const rec = RECOMMENDATION_CONFIG[reevalScore.recommendation];
+              const qDelta = Math.round(reevalScore.ideaQualityScore - idea.score!.ideaQualityScore);
+              const fitDelta = Math.round(reevalScore.teamIdeaFitScore - idea.score!.teamIdeaFitScore);
+              function delta(n: number) {
+                return n > 0 ? `+${n}` : `${n}`;
+              }
+              return (
+                <div className="rounded-lg border border-violet-200 bg-violet-50 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-violet-600">
+                      Post-validation Score
+                    </p>
+                    {rec && (
+                      <span
+                        className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                        style={{ background: rec.border, color: rec.text }}
+                      >
+                        {rec.label}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="text-center">
+                      <p className="text-[10px] text-zinc-500">Idea Quality</p>
+                      <p className="text-sm font-bold text-zinc-800">
+                        {Math.round(reevalScore.ideaQualityScore)}
+                      </p>
+                      <p className={`text-[10px] font-medium ${qDelta >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                        {delta(qDelta)}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-[10px] text-zinc-500">Team Fit</p>
+                      <p className="text-sm font-bold text-zinc-800">
+                        {Math.round(reevalScore.teamIdeaFitScore)}
+                      </p>
+                      <p className={`text-[10px] font-medium ${fitDelta >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                        {delta(fitDelta)}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-zinc-600 leading-relaxed">{reevalScore.narrative}</p>
+                  <p className="text-[10px] text-violet-400">
+                    Re-evaluated on{" "}
+                    {new Date(idea.score.reevalAt).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
+              );
+            })()}
 
             <p className="text-[10px] text-zinc-400 text-center">
               Evaluated on{" "}
