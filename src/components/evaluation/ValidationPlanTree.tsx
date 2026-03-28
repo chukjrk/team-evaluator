@@ -276,7 +276,7 @@ export function ValidationPlanTree({
                             title={activeView === "notes" ? "Close notes" : "Add notes"}
                             className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] transition-colors cursor-pointer ${
                               activeView === "notes"
-                                ? "bg-amber-100 text-amber-700"
+                                ? "bg-zinc-200 text-zinc-700"
                                 : hasNotes
                                 ? "text-amber-500 hover:text-amber-600"
                                 : "text-zinc-400 hover:text-zinc-600"
@@ -320,7 +320,7 @@ export function ValidationPlanTree({
                       {/* Expanded: notes view */}
                       {activeView === "notes" && (
                         <div className="border-t border-zinc-100 px-3 pb-3 pt-2">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-600 mb-1.5">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-600 mb-1.5">
                             Notes
                           </p>
                           <textarea
@@ -332,7 +332,7 @@ export function ValidationPlanTree({
                             onBlur={(e) => onStepNotesChange?.(step.order, e.target.value)}
                             placeholder="Record what you learned, who you spoke to, outcomes…"
                             rows={4}
-                            className="w-full resize-none rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-2 text-xs text-zinc-700 placeholder-zinc-300 focus:border-amber-300 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-200 transition-colors"
+                            className="w-full resize-none rounded-md border border-zinc-900 bg-white px-2.5 py-2 text-xs text-zinc-700 placeholder-zinc-400 focus:outline-none"
                           />
                         </div>
                       )}
@@ -379,17 +379,14 @@ export function ValidationPlanTree({
                     </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <span
-                      className={`rounded-full px-1.5 py-0.5 text-[11px] font-medium ${
-                        STRENGTH_STYLES[r.connectionStrength]
-                      }`}
-                    >
-                      {r.connectionStrength.charAt(0) +
-                        r.connectionStrength.slice(1).toLowerCase()}
-                    </span>
-                    {r.priority === "high" && (
-                      <span className="rounded-full bg-orange-100 px-1.5 py-0.5 text-[11px] font-medium text-orange-700">
-                        Priority
+                    {r.connectionStrength !== "MODERATE" && (
+                      <span
+                        className={`rounded-full px-1.5 py-0.5 text-[11px] font-medium ${
+                          STRENGTH_STYLES[r.connectionStrength]
+                        }`}
+                      >
+                        {r.connectionStrength.charAt(0) +
+                          r.connectionStrength.slice(1).toLowerCase()}
                       </span>
                     )}
                   </div>
