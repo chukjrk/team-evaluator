@@ -12,15 +12,6 @@ export interface ValidationStep {
   priority: "critical" | "high" | "medium";
 }
 
-export const STEP_TYPE_LABELS = {
-  "customer-interview": "Interview",
-  prototype: "Prototype",
-  "market-research": "Research",
-  technical: "Technical",
-  partnership: "Partnership",
-  "mvp-test": "MVP Test",
-} as const satisfies Record<ValidationStep["type"], string>;
-
 export interface NetworkReachOut {
   cofounderName: string; // which team member owns this contact
   contactName?: string;
@@ -31,12 +22,6 @@ export interface NetworkReachOut {
   outreachAngle: string; // what to say / how to approach
   priority: "high" | "medium";
 }
-
-export const CONNECTION_STRENGTH_STYLES = {
-  WARM: "bg-green-100 text-green-700",
-  MODERATE: "bg-yellow-100 text-yellow-700",
-  COLD: "bg-zinc-100 text-zinc-500",
-} as const satisfies Record<NetworkReachOut["connectionStrength"], string>;
 
 export interface StoredValidationPlan {
   hypothesis: string; // primary thing to validate

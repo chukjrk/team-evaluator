@@ -9,18 +9,6 @@ import { ValidationPlanTree } from "./ValidationPlanTree";
 import { GeneratePlanDialog } from "./GeneratePlanDialog";
 import { useValidationPlan } from "@/hooks/useValidationPlan";
 import type { IdeaData } from "@/lib/types/idea";
-import type { ValidationPlanResponse } from "@/lib/types/validation";
-
-type PlanUIState =
-  | { status: "not-evaluated" }
-  | { status: "no-plan" }
-  | { status: "has-plan"; plan: ValidationPlanResponse };
-
-function getPlanUIState(idea: IdeaData, plan: ValidationPlanResponse | null): PlanUIState {
-  if (!idea.score) return { status: "not-evaluated" };
-  if (!plan) return { status: "no-plan" };
-  return { status: "has-plan", plan };
-}
 
 interface ValidationPlanTabProps {
   idea: IdeaData;
@@ -31,8 +19,8 @@ export function ValidationPlanTab({ idea }: ValidationPlanTabProps) {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [generatingPlan, setGeneratingPlan] = useState(false);
 
-  const { plan, mutate: mutatePlan } = useValidationPlan(idea.score ? idea.id : null);
-  const state = getPlanUIState(idea, plan);
+  const hasScore = !!idea.score;
+  const { plan, mutate: mutatePlan } = useValidationPlan(hasScore ? idea.id : null);
 
   function openGenerateDialog(regenerating = false) {
     setIsRegenerating(regenerating);
@@ -64,7 +52,7 @@ export function ValidationPlanTab({ idea }: ValidationPlanTabProps) {
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      {state.status === "has-plan" && (
+      {plan && (
         <div className="shrink-0 border-b border-zinc-200 bg-white px-4 py-2 flex items-center justify-end">
           <Button
             size="sm"
@@ -80,7 +68,7 @@ export function ValidationPlanTab({ idea }: ValidationPlanTabProps) {
       )}
 
       <ScrollArea className="flex-1 h-0">
-        {state.status === "not-evaluated" ? (
+        {!hasScore ? (
           <div className="flex flex-col items-center justify-center min-h-[360px] py-20 text-center px-6">
             <ClipboardList className="h-10 w-10 text-zinc-200 mb-3" />
             <p className="text-sm font-medium text-zinc-400">Not yet evaluated</p>
@@ -88,11 +76,11 @@ export function ValidationPlanTab({ idea }: ValidationPlanTabProps) {
               Evaluate the idea first to unlock the validation plan
             </p>
           </div>
-        ) : state.status === "has-plan" ? (
+        ) : plan ? (
           <ValidationPlanTree
-            plan={state.plan.content}
-            generatedAt={state.plan.generatedAt}
-            triggeredByName={state.plan.triggeredBy.name}
+            plan={plan.content}
+            generatedAt={plan.generatedAt}
+            triggeredByName={plan.triggeredBy.name}
           />
         ) : (
           <div className="flex flex-col items-center justify-center min-h-[360px] py-20 text-center px-6">
