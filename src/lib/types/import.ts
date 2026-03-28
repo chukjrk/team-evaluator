@@ -5,15 +5,32 @@ export interface CategorizedGroup {
   connectionStrength: "WARM" | "MODERATE" | "COLD";
 }
 
-export interface StagedContact {
-  name?: string;
-  company?: string;
-  domain?: string;
-  position?: string;
-  industryId?: string;
-  connectionStrength: "WARM" | "MODERATE" | "COLD";
-  source: "GOOGLE" | "LINKEDIN" | "MANUAL";
-}
+export type StagedContact =
+  | {
+      source: "GOOGLE";
+      name?: string;
+      company?: string;
+      domain?: string;
+      position?: string;
+      industryId?: string;
+      connectionStrength: "WARM" | "MODERATE";
+    }
+  | {
+      source: "LINKEDIN";
+      company?: string;
+      position?: string;
+      industryId?: string;
+      connectionStrength: "WARM";
+    }
+  | {
+      source: "MANUAL";
+      name?: string;
+      company?: string;
+      domain?: string;
+      position?: string;
+      industryId?: string;
+      connectionStrength: "WARM" | "MODERATE" | "COLD";
+    };
 
 // Shape stored in NetworkImportSession.groups Json field (version 2).
 // Old sessions stored a bare CategorizedGroup[] — use parseSessionData() to handle both.
