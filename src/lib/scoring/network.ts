@@ -1,11 +1,11 @@
 import type { Contact, NetworkEntry } from "@prisma/client";
 import { clamp } from "@/lib/utils";
 
-const STRENGTH_MULTIPLIER: Record<string, number> = {
-  WARM: 1.0,
-  MODERATE: 0.6,
-  COLD: 0.25,
-};
+const STRENGTH_CONFIG = {
+  WARM: { multiplier: 1.0 },
+  MODERATE: { multiplier: 0.6 },
+  COLD: { multiplier: 0.25 },
+} as const satisfies Record<"WARM" | "MODERATE" | "COLD", { multiplier: number }>;
 
 // Contacts needed to hit ~100% of the size score (log scale)
 const CONTACT_SCALE = 500;
@@ -22,7 +22,7 @@ export function computeNetworkScore(
 
   // Step 1: Strength-weighted total contacts
   const weightedTotal = allEntries.reduce((sum, entry) => {
-    const multiplier = STRENGTH_MULTIPLIER[entry.connectionStrength] ?? 0.25;
+    const multiplier = STRENGTH_CONFIG[entry.connectionStrength].multiplier;
     return sum + entry.estimatedContacts * multiplier;
   }, 0);
 
@@ -39,7 +39,7 @@ export function computeNetworkScore(
   const relevantWeighted = allEntries
     .filter((e) => e.industryId === ideaIndustryId)
     .reduce((sum, e) => {
-      const multiplier = STRENGTH_MULTIPLIER[e.connectionStrength] ?? 0.25;
+      const multiplier = STRENGTH_CONFIG[e.connectionStrength].multiplier;
       return sum + e.estimatedContacts * multiplier;
     }, 0);
 
@@ -61,7 +61,7 @@ export function computeNetworkScoreFromContacts(
 
   // Step 1: Strength-weighted total (each contact = 1 person)
   const weightedTotal = contacts.reduce((sum, c) => {
-    const multiplier = STRENGTH_MULTIPLIER[c.connectionStrength] ?? 0.25;
+    const multiplier = STRENGTH_CONFIG[c.connectionStrength].multiplier;
     return sum + multiplier;
   }, 0);
 
@@ -78,7 +78,7 @@ export function computeNetworkScoreFromContacts(
   const relevantWeighted = contacts
     .filter((c) => c.industryId === ideaIndustryId)
     .reduce((sum, c) => {
-      const multiplier = STRENGTH_MULTIPLIER[c.connectionStrength] ?? 0.25;
+      const multiplier = STRENGTH_CONFIG[c.connectionStrength].multiplier;
       return sum + multiplier;
     }, 0);
 
