@@ -102,67 +102,92 @@ export function ValidationPlanPanel({
       </div>
 
       {/* Network Reach-Outs */}
-      {plan.networkReachOuts.length > 0 && (
-        <div>
-          <h4 className="text-xs font-semibold text-zinc-700 mb-2.5 flex items-center gap-1.5">
-            <Users className="h-3.5 w-3.5" />
-            Network Reach-Outs
-          </h4>
-          <div className="space-y-2">
-            {plan.networkReachOuts.map((r, i) => (
-              <div
-                key={i}
-                className="rounded-lg border border-zinc-200 bg-white p-3 space-y-1.5"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {r.contactName && (
-                        <span className="text-xs font-medium text-zinc-800">{r.contactName}</span>
-                      )}
-                      {r.position && (
-                        <span className="text-[11px] text-zinc-400">
-                          {r.contactName ? "·" : ""} {r.position}
-                        </span>
-                      )}
-                      {r.company && (
-                        <span className="text-[11px] text-zinc-400">
-                          {(r.contactName || r.position) ? "·" : ""} {r.company}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[10px] text-zinc-400 mt-0.5">
-                      via <span className="font-medium text-zinc-500">{r.cofounderName}</span>
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${STRENGTH_STYLES[r.connectionStrength]}`}
-                    >
-                      {r.connectionStrength.charAt(0) + r.connectionStrength.slice(1).toLowerCase()}
-                    </span>
-                    {r.priority === "high" && (
-                      <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-medium text-orange-700">
-                        High priority
+      {plan.networkReachOuts.length > 0 && (() => {
+        const grouped = plan.networkReachOuts.reduce<Record<string, NetworkReachOut[]>>((acc, r) => {
+          const key = r.company ?? "Other";
+          (acc[key] ??= []).push(r);
+          return acc;
+        }, {});
+        const orgs = Object.keys(grouped);
+        return (
+          <div>
+            <h4 className="text-xs font-semibold text-zinc-700 mb-2.5 flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5" />
+              Network Reach-Outs
+            </h4>
+            <div className="space-y-4">
+              {orgs.map((org) => {
+                const contacts = grouped[org];
+                return (
+                  <div key={org}>
+                    {/* Org header */}
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                        {org}
                       </span>
-                    )}
+                      {contacts.length > 1 && (
+                        <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500">
+                          {contacts.length}
+                        </span>
+                      )}
+                      <div className="flex-1 h-px bg-zinc-200" />
+                    </div>
+                    {/* Contacts in this org */}
+                    <div className="space-y-1.5 pl-2 border-l-2 border-zinc-100">
+                      {contacts.map((r, i) => (
+                        <div
+                          key={i}
+                          className="rounded-lg border border-zinc-200 bg-white p-3 space-y-1.5"
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {r.contactName && (
+                                  <span className="text-xs font-medium text-zinc-800">{r.contactName}</span>
+                                )}
+                                {r.position && (
+                                  <span className="text-[11px] text-zinc-400">
+                                    {r.contactName ? "·" : ""} {r.position}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-zinc-400 mt-0.5">
+                                via <span className="font-medium text-zinc-500">{r.cofounderName}</span>
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${STRENGTH_STYLES[r.connectionStrength]}`}
+                              >
+                                {r.connectionStrength.charAt(0) + r.connectionStrength.slice(1).toLowerCase()}
+                              </span>
+                              {r.priority === "high" && (
+                                <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-medium text-orange-700">
+                                  High priority
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <p className="text-[11px] text-zinc-500 leading-relaxed">
+                            <span className="font-medium text-zinc-600">Why: </span>
+                            {r.reason}
+                          </p>
+                          <div className="rounded-md bg-zinc-50 border border-zinc-100 px-2.5 py-1.5">
+                            <p className="text-[10px] font-medium text-zinc-500 mb-0.5">Outreach angle</p>
+                            <p className="text-[11px] text-zinc-600 leading-relaxed italic">
+                              &ldquo;{r.outreachAngle}&rdquo;
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <p className="text-[11px] text-zinc-500 leading-relaxed">
-                  <span className="font-medium text-zinc-600">Why: </span>
-                  {r.reason}
-                </p>
-                <div className="rounded-md bg-zinc-50 border border-zinc-100 px-2.5 py-1.5">
-                  <p className="text-[10px] font-medium text-zinc-500 mb-0.5">Outreach angle</p>
-                  <p className="text-[11px] text-zinc-600 leading-relaxed italic">
-                    &ldquo;{r.outreachAngle}&rdquo;
-                  </p>
-                </div>
-              </div>
-            ))}
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Success Criteria */}
       <div>

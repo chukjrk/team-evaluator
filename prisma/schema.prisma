@@ -197,17 +197,19 @@ model ValidationPlan {
 // IDEA SCORES (cached, regenerated on demand)
 // ─────────────────────────────────────────────────────────────
 model IdeaScore {
-  id                  String   @id @default(cuid())
+  id                  String    @id @default(cuid())
   teamSkillScore      Float
   networkScore        Float
   ideaQualityScore    Float
   teamIdeaFitScore    Float
   compositeScore      Float
   timeToFirstCustomer String
-  aiNarrative         String   @db.Text
+  aiNarrative         String    @db.Text
   aiReasoning         Json
-  generatedAt         DateTime @default(now())
-  modelVersion        String   @default("claude-sonnet-4-6")
+  generatedAt         DateTime  @default(now())
+  modelVersion        String    @default("claude-sonnet-4-6")
+  reevalScore         Json?     // AIScoreResult shape — set after validation re-evaluation
+  reevalAt            DateTime? // when re-evaluation was last run
 
   ideaId String @unique
   idea   Idea   @relation(fields: [ideaId], references: [id], onDelete: Cascade)
