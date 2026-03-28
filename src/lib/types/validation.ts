@@ -11,7 +11,9 @@ export interface ValidationStep {
     | "mvp-test";
   priority: "critical" | "high" | "medium";
   completed?: boolean;
-  notes?: string;
+  supportingNotes?: string;    // evidence that confirms the assumption
+  contradictingNotes?: string; // evidence that challenged or disproved it
+  dataSources?: string;        // who was spoken to, what data was used
 }
 
 export interface NetworkReachOut {
@@ -23,7 +25,11 @@ export interface NetworkReachOut {
   reason: string; // why this person is relevant
   outreachAngle: string; // what to say / how to approach
   priority: "high" | "medium";
+  forStep?: number; // maps to validationStep.order
 }
+
+// Plan without network reach-outs — returned by the steps agent
+export type ValidationPlanCore = Omit<StoredValidationPlan, "networkReachOuts">;
 
 export interface StoredValidationPlan {
   hypothesis: string; // primary thing to validate
