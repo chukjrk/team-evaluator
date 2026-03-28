@@ -157,14 +157,20 @@ export async function PATCH(
   const { id } = await params;
 
   const body = await req.json();
-  const { stepOrder, completed, notes } = body;
+  const { stepOrder, completed, supportingNotes, contradictingNotes, dataSources } = body;
   if (typeof stepOrder !== "number") {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
   if (completed !== undefined && typeof completed !== "boolean") {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
-  if (notes !== undefined && typeof notes !== "string") {
+  if (supportingNotes !== undefined && typeof supportingNotes !== "string") {
+    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+  }
+  if (contradictingNotes !== undefined && typeof contradictingNotes !== "string") {
+    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+  }
+  if (dataSources !== undefined && typeof dataSources !== "string") {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
@@ -188,7 +194,9 @@ export async function PATCH(
       if (s.order !== stepOrder) return s;
       const updated = { ...s };
       if (completed !== undefined) updated.completed = completed;
-      if (notes !== undefined) updated.notes = notes;
+      if (supportingNotes !== undefined) updated.supportingNotes = supportingNotes;
+      if (contradictingNotes !== undefined) updated.contradictingNotes = contradictingNotes;
+      if (dataSources !== undefined) updated.dataSources = dataSources;
       return updated;
     }),
   };

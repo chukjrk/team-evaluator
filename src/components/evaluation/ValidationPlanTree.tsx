@@ -14,7 +14,6 @@ import {
   RefreshCw,
   Users,
   ClipboardList,
-  StickyNote,
 } from "lucide-react";
 import type {
   StoredValidationPlan,
@@ -100,14 +99,11 @@ function Checkbox({ checked, onChange, label }: { checked: boolean; onChange: ()
   );
 }
 
-type StepView = "details" | "notes";
-
 interface ValidationPlanTreeProps {
   plan: StoredValidationPlan;
   generatedAt: string;
   triggeredByName: string;
   onStepToggle?: (stepOrder: number, completed: boolean) => void;
-  onStepNotesChange?: (stepOrder: number, notes: string) => void;
 }
 
 export function ValidationPlanTree({
@@ -115,16 +111,12 @@ export function ValidationPlanTree({
   generatedAt,
   triggeredByName,
   onStepToggle,
-  onStepNotesChange,
 }: ValidationPlanTreeProps) {
   const [checkedSteps, setCheckedSteps] = useState<Set<number>>(
     () => new Set(plan.validationSteps.filter((s) => s.completed).map((s) => s.order))
   );
-  // null = collapsed, 'details' | 'notes' = expanded with that view active
-  const [stepView, setStepView] = useState<Map<number, StepView>>(new Map());
-  const [localNotes, setLocalNotes] = useState<Map<number, string>>(
-    () => new Map(plan.validationSteps.map((s) => [s.order, s.notes ?? ""]))
-  );
+  // null = collapsed, true = expanded (details view)
+  const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set());
 
   const steps = plan.validationSteps;
   const totalSteps = steps.length;
@@ -141,19 +133,10 @@ export function ValidationPlanTree({
   }
 
   function toggleDetails(order: number) {
-    setStepView((prev) => {
-      const next = new Map(prev);
-      if (next.get(order) === "details") next.delete(order);
-      else next.set(order, "details");
-      return next;
-    });
-  }
-
-  function openNotes(order: number) {
-    setStepView((prev) => {
-      const next = new Map(prev);
-      if (next.get(order) === "notes") next.delete(order);
-      else next.set(order, "notes");
+    setExpandedSteps((prev) => {
+      const next = new Set(prev);
+      if (next.has(order)) next.delete(order);
+      else next.add(order);
       return next;
     });
   }
@@ -202,8 +185,7 @@ export function ValidationPlanTree({
                 const config = PRIORITY_CONFIG[step.priority];
                 const Icon = STEP_TYPE_ICONS[step.type] ?? ClipboardList;
                 const isChecked = checkedSteps.has(step.order);
-                const activeView = stepView.get(step.order) ?? null;
-                const hasNotes = !!(localNotes.get(step.order) ?? step.notes);
+                const isExpanded = expandedSteps.has(step.order);
 
                 return (
                   <div key={step.order} className="flex gap-3">
@@ -259,39 +241,23 @@ export function ValidationPlanTree({
                           </p>
                         </div>
 
-                        {/* Controls row: expand toggle + notes icon */}
-                        <div className="mt-2 flex items-center justify-between">
+                        {/* Controls row: expand toggle */}
+                        <div className="mt-2">
                           <button
                             onClick={() => toggleDetails(step.order)}
                             className="flex items-center gap-1 text-[11px] text-zinc-500 hover:text-zinc-700 transition-colors cursor-pointer"
                           >
-                            {activeView === "details" ? (
+                            {isExpanded ? (
                               <><ChevronUp className="h-3 w-3" />Hide details</>
                             ) : (
                               <><ChevronDown className="h-3 w-3" />Show details</>
-                            )}
-                          </button>
-                          <button
-                            onClick={() => openNotes(step.order)}
-                            title={activeView === "notes" ? "Close notes" : "Add notes"}
-                            className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] transition-colors cursor-pointer ${
-                              activeView === "notes"
-                                ? "bg-zinc-200 text-zinc-700"
-                                : hasNotes
-                                ? "text-amber-500 hover:text-amber-600"
-                                : "text-zinc-400 hover:text-zinc-600"
-                            }`}
-                          >
-                            <StickyNote className="h-3 w-3" />
-                            {hasNotes && activeView !== "notes" && (
-                              <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
                             )}
                           </button>
                         </div>
                       </div>
 
                       {/* Expanded: details view */}
-                      {activeView === "details" && (
+                      {isExpanded && (
                         <div className="border-t border-zinc-100 px-3 pb-3 pt-2 space-y-2.5">
                           <ul className="space-y-1">
                             {step.description
@@ -317,25 +283,6 @@ export function ValidationPlanTree({
                         </div>
                       )}
 
-                      {/* Expanded: notes view */}
-                      {activeView === "notes" && (
-                        <div className="border-t border-zinc-100 px-3 pb-3 pt-2">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-600 mb-1.5">
-                            Notes
-                          </p>
-                          <textarea
-                            value={localNotes.get(step.order) ?? ""}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setLocalNotes((prev) => new Map(prev).set(step.order, val));
-                            }}
-                            onBlur={(e) => onStepNotesChange?.(step.order, e.target.value)}
-                            placeholder="Record what you learned, who you spoke to, outcomes…"
-                            rows={4}
-                            className="w-full resize-none rounded-md border border-zinc-900 bg-white px-2.5 py-2 text-xs text-zinc-700 placeholder-zinc-400 focus:outline-none"
-                          />
-                        </div>
-                      )}
                     </div>
                   </div>
                 );
@@ -376,6 +323,12 @@ export function ValidationPlanTree({
                     <p className="text-[11px] text-zinc-500 mt-0.5">
                       via{" "}
                       <span className="font-medium text-zinc-700">{r.cofounderName}</span>
+                      {r.forStep != null && (() => {
+                        const step = plan.validationSteps.find((s) => s.order === r.forStep);
+                        return step ? (
+                          <span className="ml-1.5 text-violet-500">· Step {r.forStep}: {step.title}</span>
+                        ) : null;
+                      })()}
                     </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
