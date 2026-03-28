@@ -10,6 +10,8 @@ export interface ValidationStep {
     | "partnership"
     | "mvp-test";
   priority: "critical" | "high" | "medium";
+  completed?: boolean;
+  notes?: string;
 }
 
 export interface NetworkReachOut {
