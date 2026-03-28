@@ -7,49 +7,135 @@ const SYSTEM_PROMPT = `You are a startup validation strategist. Given an evaluat
 
 Your job is to produce a concrete, prioritized action plan — not generic advice. Every step must be specific to THIS idea and THIS team's situation. Every network reach-out must reference a real person from the provided contacts list.
 
-Return ONLY valid JSON with this exact schema:
-{
-  "hypothesis": "<The single most critical assumption that, if wrong, kills this idea. One sentence.>",
-  "validationSteps": [
-    {
-      "order": <integer starting at 1>,
-      "title": "<short action title>",
-      "description": "<2-3 sentences describing exactly what to do and what to learn from it>",
-      "type": "customer-interview" | "prototype" | "market-research" | "technical" | "partnership" | "mvp-test",
-      "priority": "critical" | "high" | "medium"
-    }
-  ],
-  "networkReachOuts": [
-    {
-      "cofounderName": "<name of the team member who owns this contact>",
-      "contactName": "<name of the person to reach out to, if known>",
-      "company": "<company name>",
-      "position": "<their role>",
-      "connectionStrength": "WARM" | "MODERATE" | "COLD",
-      "reason": "<why this specific person is valuable for validation — be precise>",
-      "outreachAngle": "<exactly what to say in the first message — reference the specific problem you're solving>",
-      "priority": "high" | "medium"
-    }
-  ],
-  "successCriteria": [
-    "<specific, measurable thing that must be true before proceeding — e.g. '8 of 10 customer interviews confirm they would pay $X/month'>",
-    ...
-  ],
-  "estimatedTimeline": "<realistic timeline to complete the critical validation steps, e.g. '3-4 weeks'>",
-  "reevaluationTriggers": [
-    "<specific finding that would change the evaluation score significantly — e.g. 'Hospital procurement cycle is 18+ months, not 3-6 months as assumed'>",
-    ...
-  ]
-}
-
 Rules:
 - validationSteps: exactly 3 to 4 steps, ordered by priority (critical first). Keep descriptions concise (1-2 sentences).
 - networkReachOuts: only include people from the provided contacts list; if no relevant contacts exist, return an empty array; max 5 reach-outs. Keep outreachAngle to 1-2 sentences.
 - successCriteria: exactly 3 specific, measurable criteria (1 sentence each)
 - reevaluationTriggers: exactly 2 findings that would materially change the score (1 sentence each)
 - Be concise throughout — keep descriptions tight, avoid filler sentences
-- Do not use the words "innovative", "exciting", "promising", or "potential"
-- Do not include any text outside the JSON object`;
+- Do not use the words "innovative", "exciting", "promising", or "potential"`;
+
+const VALIDATION_PLAN_TOOL: Anthropic.Tool = {
+  name: "submit_validation_plan",
+  description:
+    "Submit the structured validation plan for the given startup idea and team.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      hypothesis: {
+        type: "string",
+        description:
+          "The single most critical assumption that, if wrong, kills this idea. One sentence.",
+      },
+      validationSteps: {
+        type: "array",
+        description: "3 to 4 prioritized validation steps, critical first.",
+        items: {
+          type: "object",
+          properties: {
+            order: { type: "integer", description: "Starting at 1." },
+            title: { type: "string", description: "Short action title." },
+            description: {
+              type: "string",
+              description:
+                "1-2 sentences describing exactly what to do and what to learn.",
+            },
+            type: {
+              type: "string",
+              enum: [
+                "customer-interview",
+                "prototype",
+                "market-research",
+                "technical",
+                "partnership",
+                "mvp-test",
+              ],
+            },
+            priority: {
+              type: "string",
+              enum: ["critical", "high", "medium"],
+            },
+          },
+          required: ["order", "title", "description", "type", "priority"],
+        },
+        minItems: 3,
+        maxItems: 4,
+      },
+      networkReachOuts: {
+        type: "array",
+        description:
+          "Up to 5 specific contacts from the team network to reach out to. Empty array if no relevant contacts.",
+        items: {
+          type: "object",
+          properties: {
+            cofounderName: {
+              type: "string",
+              description: "Name of the team member who owns this contact.",
+            },
+            contactName: {
+              type: "string",
+              description: "Name of the person to reach out to.",
+            },
+            company: { type: "string" },
+            position: { type: "string" },
+            connectionStrength: {
+              type: "string",
+              enum: ["WARM", "MODERATE", "COLD"],
+            },
+            reason: {
+              type: "string",
+              description:
+                "Why this specific person is valuable for validation.",
+            },
+            outreachAngle: {
+              type: "string",
+              description:
+                "1-2 sentences: exactly what to say in the first message.",
+            },
+            priority: { type: "string", enum: ["high", "medium"] },
+          },
+          required: [
+            "cofounderName",
+            "connectionStrength",
+            "reason",
+            "outreachAngle",
+            "priority",
+          ],
+        },
+        maxItems: 5,
+      },
+      successCriteria: {
+        type: "array",
+        description:
+          "Exactly 3 specific, measurable things that must be true before proceeding.",
+        items: { type: "string" },
+        minItems: 3,
+        maxItems: 3,
+      },
+      estimatedTimeline: {
+        type: "string",
+        description:
+          "Realistic timeline to complete the critical validation steps, e.g. '3-4 weeks'.",
+      },
+      reevaluationTriggers: {
+        type: "array",
+        description:
+          "Exactly 2 specific findings that would change the evaluation score significantly.",
+        items: { type: "string" },
+        minItems: 2,
+        maxItems: 2,
+      },
+    },
+    required: [
+      "hypothesis",
+      "validationSteps",
+      "networkReachOuts",
+      "successCriteria",
+      "estimatedTimeline",
+      "reevaluationTriggers",
+    ],
+  },
+};
 
 function buildNetworkContext(
   members: MemberWithProfile[],
@@ -160,7 +246,7 @@ export async function generateValidationPlan(
 
   const client = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY,
-    timeout: 120_000, // 2 minute hard timeout
+    timeout: 120_000,
   });
 
   console.log("[validation] calling Claude API...");
@@ -169,6 +255,8 @@ export async function generateValidationPlan(
     message = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 3000,
+      tools: [VALIDATION_PLAN_TOOL],
+      tool_choice: { type: "tool", name: "submit_validation_plan" },
       system: [
         {
           type: "text",
@@ -208,22 +296,21 @@ export async function generateValidationPlan(
     usage: message.usage,
   });
 
-  let raw = (message.content[0] as Anthropic.TextBlock).text.trim();
-  if (raw.startsWith("```")) {
-    raw = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+  const toolUseBlock = message.content.find(
+    (block): block is Anthropic.ToolUseBlock => block.type === "tool_use"
+  );
+
+  if (!toolUseBlock) {
+    throw new Error(
+      `Claude did not call the expected tool. stop_reason: ${message.stop_reason}`
+    );
   }
 
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    throw new Error(`Claude returned non-JSON response: ${raw.slice(0, 300)}`);
+  const plan = toolUseBlock.input as StoredValidationPlan;
+
+  if (!plan.hypothesis || !Array.isArray(plan.validationSteps) || !Array.isArray(plan.networkReachOuts)) {
+    throw new Error("Validation plan tool response missing required fields");
   }
 
-  const p = parsed as StoredValidationPlan;
-  if (!p.hypothesis || !Array.isArray(p.validationSteps) || !Array.isArray(p.networkReachOuts)) {
-    throw new Error("Validation plan response missing required fields");
-  }
-
-  return p;
+  return plan;
 }
