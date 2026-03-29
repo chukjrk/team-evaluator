@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { STEP_TYPE_LABELS, CONNECTION_STRENGTH_STYLES } from "@/lib/types/validation";
-import type { StoredValidationPlan, ValidationStep } from "@/lib/types/validation";
+import type { StoredValidationPlan, ValidationStep, NetworkReachOut } from "@/lib/types/validation";
 
 interface ValidationPlanPanelProps {
   plan: StoredValidationPlan;
