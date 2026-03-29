@@ -13,7 +13,8 @@ import {
   Rocket,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import type { StoredValidationPlan, ValidationStep, NetworkReachOut } from "@/lib/types/validation";
+import { STEP_TYPE_LABELS, CONNECTION_STRENGTH_STYLES } from "@/lib/types/validation";
+import type { StoredValidationPlan, ValidationStep } from "@/lib/types/validation";
 
 interface ValidationPlanPanelProps {
   plan: StoredValidationPlan;
@@ -21,34 +22,19 @@ interface ValidationPlanPanelProps {
   triggeredByName: string;
 }
 
-const STEP_TYPE_ICONS: Record<ValidationStep["type"], React.ElementType> = {
+const STEP_TYPE_ICONS = {
   "customer-interview": MessageSquare,
   prototype: FlaskConical,
   "market-research": Search,
   technical: Wrench,
   partnership: Handshake,
   "mvp-test": Rocket,
-};
-
-const STEP_TYPE_LABELS: Record<ValidationStep["type"], string> = {
-  "customer-interview": "Interview",
-  prototype: "Prototype",
-  "market-research": "Research",
-  technical: "Technical",
-  partnership: "Partnership",
-  "mvp-test": "MVP Test",
-};
+} satisfies Record<ValidationStep["type"], React.ElementType>;
 
 const PRIORITY_STYLES: Record<ValidationStep["priority"], { badge: string }> = {
   critical: { badge: "bg-red-100 text-red-700 border-red-200" },
   high: { badge: "bg-orange-100 text-orange-700 border-orange-200" },
   medium: { badge: "bg-zinc-100 text-zinc-600 border-zinc-200" },
-};
-
-const STRENGTH_STYLES: Record<NetworkReachOut["connectionStrength"], string> = {
-  WARM: "bg-green-100 text-green-700",
-  MODERATE: "bg-yellow-100 text-yellow-700",
-  COLD: "bg-zinc-100 text-zinc-500",
 };
 
 export function ValidationPlanPanel({
@@ -71,7 +57,7 @@ export function ValidationPlanPanel({
         <h4 className="text-xs font-semibold text-zinc-700 mb-2.5">Validation Steps</h4>
         <div className="space-y-2">
           {plan.validationSteps.map((step) => {
-            const Icon = STEP_TYPE_ICONS[step.type] ?? CheckCircle2;
+            const Icon = STEP_TYPE_ICONS[step.type];
             const priorityStyle = PRIORITY_STYLES[step.priority] ?? PRIORITY_STYLES.medium;
             return (
               <div
@@ -181,6 +167,16 @@ export function ValidationPlanPanel({
                         </div>
                       ))}
                     </div>
+                    <p className="text-[10px] text-zinc-400 mt-0.5">
+                      via <span className="font-medium text-zinc-500">{r.cofounderName}</span>
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${CONNECTION_STRENGTH_STYLES[r.connectionStrength]}`}
+                    >
+                      {r.connectionStrength.charAt(0) + r.connectionStrength.slice(1).toLowerCase()}
+                    </span>
                   </div>
                 );
               })}

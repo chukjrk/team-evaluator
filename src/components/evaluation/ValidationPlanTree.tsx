@@ -15,11 +15,8 @@ import {
   Users,
   ClipboardList,
 } from "lucide-react";
-import type {
-  StoredValidationPlan,
-  ValidationStep,
-  NetworkReachOut,
-} from "@/lib/types/validation";
+import { STEP_TYPE_LABELS, CONNECTION_STRENGTH_STYLES } from "@/lib/types/validation";
+import type { StoredValidationPlan, ValidationStep } from "@/lib/types/validation";
 
 const PRIORITY_CONFIG = {
   critical: {
@@ -45,29 +42,14 @@ const PRIORITY_CONFIG = {
   },
 } as const;
 
-const STEP_TYPE_ICONS: Record<ValidationStep["type"], React.ElementType> = {
+const STEP_TYPE_ICONS = {
   "customer-interview": MessageSquare,
   prototype: FlaskConical,
   "market-research": Search,
   technical: Wrench,
   partnership: Handshake,
   "mvp-test": Rocket,
-};
-
-const STEP_TYPE_LABELS: Record<ValidationStep["type"], string> = {
-  "customer-interview": "Interview",
-  prototype: "Prototype",
-  "market-research": "Research",
-  technical: "Technical",
-  partnership: "Partnership",
-  "mvp-test": "MVP Test",
-};
-
-const STRENGTH_STYLES: Record<NetworkReachOut["connectionStrength"], string> = {
-  WARM: "bg-green-100 text-green-700",
-  MODERATE: "bg-yellow-100 text-yellow-700",
-  COLD: "bg-zinc-100 text-zinc-500",
-};
+} satisfies Record<ValidationStep["type"], React.ElementType>;
 
 function Checkbox({ checked, onChange, label }: { checked: boolean; onChange: () => void; label?: string }) {
   return (
@@ -183,7 +165,7 @@ export function ValidationPlanTree({
             <div className="space-y-3">
               {steps.map((step) => {
                 const config = PRIORITY_CONFIG[step.priority];
-                const Icon = STEP_TYPE_ICONS[step.type] ?? ClipboardList;
+                const Icon = STEP_TYPE_ICONS[step.type];
                 const isChecked = checkedSteps.has(step.order);
                 const isExpanded = expandedSteps.has(step.order);
 
@@ -332,16 +314,14 @@ export function ValidationPlanTree({
                     </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    {r.connectionStrength !== "MODERATE" && (
-                      <span
-                        className={`rounded-full px-1.5 py-0.5 text-[11px] font-medium ${
-                          STRENGTH_STYLES[r.connectionStrength]
-                        }`}
-                      >
-                        {r.connectionStrength.charAt(0) +
-                          r.connectionStrength.slice(1).toLowerCase()}
-                      </span>
-                    )}
+                    <span
+                      className={`rounded-full px-1.5 py-0.5 text-[11px] font-medium ${
+                        CONNECTION_STRENGTH_STYLES[r.connectionStrength]
+                      }`}
+                    >
+                      {r.connectionStrength.charAt(0) +
+                        r.connectionStrength.slice(1).toLowerCase()}
+                    </span>
                   </div>
                 </div>
                 <p className="text-xs text-zinc-600 leading-relaxed">
