@@ -12,7 +12,6 @@ import {
   Handshake,
   Rocket,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { STEP_TYPE_LABELS, CONNECTION_STRENGTH_STYLES } from "@/lib/types/validation";
 import type { StoredValidationPlan, ValidationStep, NetworkReachOut } from "@/lib/types/validation";
 
@@ -143,7 +142,7 @@ export function ValidationPlanPanel({
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
                               <span
-                                className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${STRENGTH_STYLES[r.connectionStrength]}`}
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${CONNECTION_STRENGTH_STYLES[r.connectionStrength]}`}
                               >
                                 {r.connectionStrength.charAt(0) + r.connectionStrength.slice(1).toLowerCase()}
                               </span>
@@ -167,16 +166,6 @@ export function ValidationPlanPanel({
                         </div>
                       ))}
                     </div>
-                    <p className="text-[10px] text-zinc-400 mt-0.5">
-                      via <span className="font-medium text-zinc-500">{r.cofounderName}</span>
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${CONNECTION_STRENGTH_STYLES[r.connectionStrength]}`}
-                    >
-                      {r.connectionStrength.charAt(0) + r.connectionStrength.slice(1).toLowerCase()}
-                    </span>
                   </div>
                 );
               })}
