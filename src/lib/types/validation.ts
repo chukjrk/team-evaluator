@@ -52,6 +52,8 @@ export interface StoredValidationPlan {
   reevaluationTriggers: string[]; // key findings that would change the score
 }
 
+export type ValidationPlanCore = Omit<StoredValidationPlan, "networkReachOuts">;
+
 export interface ValidationPlanResponse {
   id: string;
   content: StoredValidationPlan;
