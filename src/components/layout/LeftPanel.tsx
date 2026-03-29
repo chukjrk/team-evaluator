@@ -112,7 +112,7 @@ export function LeftPanel({ onCollapse }: LeftPanelProps) {
           {/* Team collapsible */}
           <button
             onClick={() => setTeamOpen(!teamOpen)}
-            className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 transition-colors"
+            className="flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 transition-colors"
           >
             <Users className="h-4 w-4 shrink-0 text-zinc-400" />
             <span className="flex-1 text-left">Team</span>
