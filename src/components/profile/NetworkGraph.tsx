@@ -213,7 +213,7 @@ export function NetworkGraph({ entries, onEdit, onDelete }: Props) {
       {/* Radar chart — fully self-contained, no overflow */}
       <div
         ref={containerRef}
-        className="relative w-full rounded-xl border border-zinc-100 bg-zinc-50"
+        className="relative flex w-full items-center justify-center rounded-xl border border-zinc-100 bg-zinc-50"
       >
         <svg
           viewBox={`0 0 ${SVG_SIZE} ${SVG_SIZE}`}

@@ -293,9 +293,7 @@ export function EvaluationPanel({
             <div className="text-3xl">🔍</div>
             <p className="text-sm font-medium text-zinc-600">Not yet evaluated</p>
             <p className="text-xs text-zinc-400 max-w-xs">
-              {isOwner
-                ? "Click Evaluate to score this idea based on your team's skills and network."
-                : "The idea submitter needs to trigger evaluation."}
+              Click Evaluate to score this idea based on your team's skills and network.
             </p>
           </div>
         )}
@@ -325,18 +323,16 @@ export function EvaluationPanel({
           </Select>
         )}
 
-        {isOwner && (
-          <Button
-            size="sm"
-            variant={idea.score ? "outline" : "default"}
-            onClick={handleEvaluate}
-            disabled={evaluating}
-            className="ml-auto"
-          >
-            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${evaluating ? "animate-spin" : ""}`} />
-            {evaluating ? "Evaluating..." : idea.score ? "Re-evaluate" : "Evaluate"}
-          </Button>
-        )}
+        <Button
+          size="sm"
+          variant={idea.score ? "outline" : "default"}
+          onClick={handleEvaluate}
+          disabled={evaluating}
+          className="ml-auto"
+        >
+          <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${evaluating ? "animate-spin" : ""}`} />
+          {evaluating ? "Evaluating..." : idea.score ? "Re-evaluate" : "Evaluate"}
+        </Button>
       </div>
     </div>
   );

@@ -24,11 +24,6 @@ export async function POST(
   });
   if (!idea) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  // Only submitter can trigger evaluation
-  if (idea.submitterId !== member.id) {
-    return NextResponse.json({ error: "Only the idea submitter can evaluate" }, { status: 403 });
-  }
-
   // Fetch all workspace members with profiles, network entries, and contacts
   const workspaceMembers = await prisma.workspaceMember.findMany({
     where: { workspaceId: member.workspaceId },
