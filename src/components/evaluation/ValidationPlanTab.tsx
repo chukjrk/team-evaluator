@@ -90,9 +90,21 @@ export function ValidationPlanTab({ idea }: ValidationPlanTabProps) {
           </div>
         ) : state.status === "has-plan" ? (
           <ValidationPlanTree
+            key={state.plan.generatedAt}
             plan={state.plan.content}
             generatedAt={state.plan.generatedAt}
             triggeredByName={state.plan.triggeredBy.name}
+            onStepToggle={async (stepOrder, completed) => {
+              const res = await fetch(`/api/ideas/${idea.id}/validation-plan`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ stepOrder, completed }),
+              });
+              if (res.ok) {
+                const data = await res.json();
+                await mutatePlan(data, false);
+              }
+            }}
           />
         ) : (
           <div className="flex flex-col items-center justify-center min-h-[360px] py-20 text-center px-6">

@@ -1,5 +1,5 @@
 import type { Visibility } from "@prisma/client";
-import type { ScoreResult } from "./scoring";
+import type { AIScoreResult, ScoreResult } from "./scoring";
 
 export type { Visibility };
 
@@ -17,5 +17,10 @@ export interface IdeaData {
   workspaceId: string;
   submitterId: string;
   submitter: { id: string; name: string; email: string };
-  score: (ScoreResult & { generatedAt: Date; modelVersion: string }) | null;
+  score: (ScoreResult & {
+    generatedAt: Date;
+    modelVersion: string;
+    reevalScore?: AIScoreResult | null;
+    reevalAt?: Date | null;
+  }) | null;
 }

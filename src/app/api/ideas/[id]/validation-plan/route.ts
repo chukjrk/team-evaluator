@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateValidationPlan } from "@/lib/scoring/validation";
 import type { MemberWithProfile } from "@/lib/types/profile";
+import type { StoredValidationPlan } from "@/lib/types/validation";
 import type { Contact, NetworkEntry } from "@prisma/client";
 
 export async function GET(
@@ -140,6 +141,69 @@ export async function POST(
       content: planContent as object,
       generatedAt: new Date(),
     },
+    include: { triggeredBy: { select: { name: true } } },
+  });
+
+  return NextResponse.json(plan);
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { id } = await params;
+
+  const body = await req.json();
+  const { stepOrder, completed, supportingNotes, contradictingNotes, dataSources } = body;
+  if (typeof stepOrder !== "number") {
+    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+  }
+  if (completed !== undefined && typeof completed !== "boolean") {
+    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+  }
+  if (supportingNotes !== undefined && typeof supportingNotes !== "string") {
+    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+  }
+  if (contradictingNotes !== undefined && typeof contradictingNotes !== "string") {
+    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+  }
+  if (dataSources !== undefined && typeof dataSources !== "string") {
+    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+  }
+
+  const member = await prisma.workspaceMember.findFirst({
+    where: { clerkUserId: userId },
+  });
+  if (!member) return NextResponse.json({ error: "Not a workspace member" }, { status: 403 });
+
+  const idea = await prisma.idea.findFirst({
+    where: { id, workspaceId: member.workspaceId },
+  });
+  if (!idea) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const existing = await prisma.validationPlan.findUnique({ where: { ideaId: id } });
+  if (!existing) return NextResponse.json({ error: "No validation plan" }, { status: 404 });
+
+  const content = existing.content as unknown as StoredValidationPlan;
+  const updatedContent: StoredValidationPlan = {
+    ...content,
+    validationSteps: content.validationSteps.map((s) => {
+      if (s.order !== stepOrder) return s;
+      const updated = { ...s };
+      if (completed !== undefined) updated.completed = completed;
+      if (supportingNotes !== undefined) updated.supportingNotes = supportingNotes;
+      if (contradictingNotes !== undefined) updated.contradictingNotes = contradictingNotes;
+      if (dataSources !== undefined) updated.dataSources = dataSources;
+      return updated;
+    }),
+  };
+
+  const plan = await prisma.validationPlan.update({
+    where: { ideaId: id },
+    data: { content: updatedContent as object },
     include: { triggeredBy: { select: { name: true } } },
   });
 

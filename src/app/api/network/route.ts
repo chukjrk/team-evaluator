@@ -38,6 +38,22 @@ export async function GET() {
   return NextResponse.json(entries);
 }
 
+export async function DELETE() {
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const member = await getMemberProfile(userId);
+  if (!member) return NextResponse.json({ error: "Not a workspace member" }, { status: 403 });
+  if (!member.profile) return NextResponse.json({ ok: true });
+
+  await prisma.$transaction([
+    prisma.networkEntry.deleteMany({ where: { profileId: member.profile.id } }),
+    prisma.contact.deleteMany({ where: { profileId: member.profile.id } }),
+  ]);
+
+  return NextResponse.json({ ok: true });
+}
+
 export async function POST(req: NextRequest) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

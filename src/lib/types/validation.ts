@@ -10,6 +10,10 @@ export interface ValidationStep {
     | "partnership"
     | "mvp-test";
   priority: "critical" | "high" | "medium";
+  completed?: boolean;
+  supportingNotes?: string;    // evidence that confirms the assumption
+  contradictingNotes?: string; // evidence that challenged or disproved it
+  dataSources?: string;        // who was spoken to, what data was used
 }
 
 export const STEP_TYPE_LABELS = {
@@ -30,6 +34,7 @@ export interface NetworkReachOut {
   reason: string; // why this person is relevant
   outreachAngle: string; // what to say / how to approach
   priority: "high" | "medium";
+  forStep?: number; // maps to validationStep.order
 }
 
 export const CONNECTION_STRENGTH_STYLES = {
@@ -46,6 +51,8 @@ export interface StoredValidationPlan {
   estimatedTimeline: string;
   reevaluationTriggers: string[]; // key findings that would change the score
 }
+
+export type ValidationPlanCore = Omit<StoredValidationPlan, "networkReachOuts">;
 
 export interface ValidationPlanResponse {
   id: string;

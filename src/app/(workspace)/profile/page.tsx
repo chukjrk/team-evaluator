@@ -5,6 +5,14 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { NetworkEntryForm } from "@/components/profile/NetworkEntryForm";
 import { NetworkImportSection } from "@/components/profile/NetworkImportSection";
@@ -36,6 +44,8 @@ export default function ProfilePage() {
   const { data: profile, mutate } = useSWR<ProfileData>("/api/profile", fetcher);
   const [editFormOpen, setEditFormOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<NetworkEntryWithIndustry | undefined>();
+  const [clearing, setClearing] = useState(false);
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
 
   async function deleteEntry(id: string) {
     const res = await fetch(`/api/network/${id}`, { method: "DELETE" });
@@ -44,6 +54,23 @@ export default function ProfilePage() {
       mutate();
     } else {
       toast.error("Failed to delete entry");
+    }
+  }
+
+  async function clearNetwork() {
+    setClearing(true);
+    try {
+      const res = await fetch("/api/network", { method: "DELETE" });
+      if (res.ok) {
+        toast.success("Network cleared");
+        mutate();
+      } else {
+        toast.error("Failed to clear network");
+      }
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setClearing(false);
     }
   }
 
@@ -87,8 +114,18 @@ export default function ProfilePage() {
 
         {/* Network Entries */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Your Network</CardTitle>
+            {(profile?.networkEntries ?? []).length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                onClick={() => setClearConfirmOpen(true)}
+              >
+                Clear all
+              </Button>
+            )}
           </CardHeader>
           <CardContent className="space-y-3">
             <Suspense>
@@ -109,6 +146,32 @@ export default function ProfilePage() {
         existing={editingEntry}
         onSaved={() => mutate()}
       />
+
+      <Dialog open={clearConfirmOpen} onOpenChange={setClearConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Clear your network?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete all network entries and imported contacts. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setClearConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={clearing}
+              onClick={async () => {
+                await clearNetwork();
+                setClearConfirmOpen(false);
+              }}
+            >
+              {clearing ? "Clearing..." : "Clear network"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

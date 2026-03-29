@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { ClipboardList, BarChart2 } from "lucide-react";
+import { ClipboardList, BarChart2, NotebookPen } from "lucide-react";
 import { IdeaForm } from "@/components/ideas/IdeaForm";
 import { EvaluationPanel } from "@/components/evaluation/EvaluationPanel";
 import { ValidationPlanTab } from "@/components/evaluation/ValidationPlanTab";
+import { ValidationNotesTab } from "@/components/evaluation/ValidationNotesTab";
 import { cn } from "@/lib/utils";
 import type { IdeaData } from "@/lib/types/idea";
 
-type RightTab = "evaluation" | "validation";
+type RightTab = "evaluation" | "validation" | "notes";
 
 interface RightPanelProps {
   idea: IdeaData | null;
@@ -16,6 +17,7 @@ interface RightPanelProps {
   onIdeaUpdated: (idea: IdeaData) => void;
   onIdeaDeleted: (ideaId: string) => void;
 }
+
 
 export function RightPanel({
   idea,
@@ -43,6 +45,7 @@ export function RightPanel({
   const tabs: { id: RightTab; label: string; icon: React.ReactNode }[] = [
     { id: "evaluation", label: "Evaluation", icon: <BarChart2 className="h-3.5 w-3.5" /> },
     { id: "validation", label: "Validation Plan", icon: <ClipboardList className="h-3.5 w-3.5" /> },
+    { id: "notes", label: "Validation Notes", icon: <NotebookPen className="h-3.5 w-3.5" /> },
   ];
 
   return (
@@ -84,6 +87,14 @@ export function RightPanel({
       )}
 
       {activeTab === "validation" && <ValidationPlanTab idea={idea} />}
+
+      {activeTab === "notes" && (
+        <ValidationNotesTab
+          idea={idea}
+          onIdeaUpdated={onIdeaUpdated}
+          onReevalComplete={() => setActiveTab("evaluation")}
+        />
+      )}
 
       <IdeaForm
         open={editOpen}

@@ -46,6 +46,7 @@ Schema models:
 - `Industry` — lookup table with slug PK (e.g. `"enterprise-saas"`) and `label`. All industry FK fields across models reference this table.
 - `Workspace` → `WorkspaceMember` → `CofounderProfile` → `NetworkEntry` (aggregate) + `Contact` (individual, from imports/manual).
 - `Idea` — belongs to workspace + submitter, has `industryId` FK. 1:1 `IdeaScore` (cached eval). 1:1 `ValidationPlan` (AI-generated, workspace-visible).
+- `IdeaScore` — has `reevalScore Json?` (stores `AIScoreResult` after re-evaluation) and `reevalAt DateTime?` (timestamp of last re-eval).
 - `Contact` — individual person from Google/LinkedIn/manual import. Has `name`, `company`, `domain`, `position`, `industryId`, `connectionStrength`, `source` (enum: GOOGLE/LINKEDIN/MANUAL), `embedding Float[]` (always `[]` until pgvector). Belongs to `CofounderProfile`.
 - `CompanyIndustryCache` — domain→industryId cache (domain as PK). `NetworkImportSession` — in-progress import groups per member (1-hour TTL, v2 envelope format).
 
@@ -75,6 +76,12 @@ Composite formula: `0.25 × TeamSkill + 0.20 × Network + 0.30 × IdeaQuality + 
 
 Scores are persisted to `IdeaScore` via upsert and regenerated on demand. Only the idea submitter can trigger evaluation (`POST /api/ideas/[id]/score`).
 
+**Validation plan generation** is now a two-step pipeline inside `generateValidationPlan()` (`validation.ts` orchestrates):
+1. `generateValidationSteps()` (`validation-steps.ts`) — first Claude pass, returns `ValidationPlanCore` (steps, hypothesis, criteria, timeline, triggers).
+2. `assessNetworkForPlan()` (`validation-network.ts`) — second Claude pass, maps team contacts to specific steps, returns `NetworkReachOut[]`.
+
+**Re-evaluation** (`reeval.ts`) — `reEvaluateIdea()` — calls `claude-sonnet-4-6` with the original evaluation + validation step notes (supporting/contradicting evidence + data sources). Returns `AIScoreResult` stored in `IdeaScore.reevalScore`. Requires ≥50% of steps completed and at least one step with notes.
+
 ### API Routes (Next.js 16)
 
 All route handlers use `params: Promise<{ id: string }>` — must `await params` before accessing fields.
@@ -84,6 +91,8 @@ Key routes:
 - `GET/POST /api/ideas` — list/create ideas (field: `industryId`)
 - `POST /api/ideas/[id]/score` — trigger AI evaluation (submitter only)
 - `GET/POST /api/ideas/[id]/validation-plan` — fetch/generate AI validation plan (any workspace member; requires existing score)
+- `PATCH /api/ideas/[id]/validation-plan` — update a validation step's `completed`, `supportingNotes`, `contradictingNotes`, `dataSources` fields (body: `{ stepOrder, completed?, supportingNotes?, contradictingNotes?, dataSources? }`)
+- `POST /api/ideas/[id]/reeval` — trigger re-evaluation using validation evidence (any workspace member; requires ≥50% steps completed + at least one step with notes)
 - `PUT /api/ideas/[id]` — update idea
 - `DELETE /api/ideas/[id]` — delete idea
 - `PATCH /api/ideas/[id]/visibility` — toggle visibility
@@ -107,10 +116,14 @@ Key routes:
 - `src/lib/types/idea.ts` — `IdeaData` with `industry: { id, label }` (relation object, not string).
 - `src/lib/types/profile.ts` — `MemberWithProfile`, `NetworkEntryData` (with `industry: { id, label }`), `ContactData`.
 - `src/lib/types/import.ts` — `CategorizedGroup` (uses `industryId`), `StagedContact`, `ImportSessionData` (v2 envelope), `parseSessionData()` (handles legacy bare arrays).
-- `src/lib/types/validation.ts` — `StoredValidationPlan`, `ValidationStep`, `NetworkReachOut`, `ValidationPlanResponse`.
+- `src/lib/types/validation.ts` — `StoredValidationPlan`, `ValidationPlanCore` (= `Omit<StoredValidationPlan, "networkReachOuts">`), `ValidationStep` (with optional `completed`, `supportingNotes`, `contradictingNotes`, `dataSources`), `NetworkReachOut` (with optional `forStep`), `ValidationPlanResponse`.
+- `src/lib/types/idea.ts` — `IdeaData.score` now includes `reevalScore?: AIScoreResult | null` and `reevalAt?: Date | null`.
 - `src/lib/contacts/domains.ts` — `PERSONAL_DOMAINS` set, `extractDomain`, `domainToCompanyName` utilities.
 - `src/lib/contacts/classify.ts` — `classifyCompanyDomains` (domain→industryId via cache+Haiku), `classifyContactGroups` (→`CategorizedGroup[]`), `classifyContactsPerRow` (→per-row `string[]`). All use `claude-haiku-4-5-20251001`.
-- `src/lib/scoring/validation.ts` — `generateValidationPlan()` — calls `claude-sonnet-4-6` with team network context (cached) + idea/score payload. Returns `StoredValidationPlan` with steps, network reach-outs referencing real contacts, success criteria, and re-evaluation triggers.
+- `src/lib/scoring/validation.ts` — `generateValidationPlan()` — orchestrator: calls `generateValidationSteps` then `assessNetworkForPlan`, returns `StoredValidationPlan`.
+- `src/lib/scoring/validation-steps.ts` — `generateValidationSteps()` — first Claude pass, returns `ValidationPlanCore`.
+- `src/lib/scoring/validation-network.ts` — `assessNetworkForPlan()` — second Claude pass, maps contacts to steps, returns `NetworkReachOut[]`.
+- `src/lib/scoring/reeval.ts` — `reEvaluateIdea()` — re-scores idea using validation evidence, returns `AIScoreResult`.
 
 ### UI Components
 
