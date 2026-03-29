@@ -90,10 +90,10 @@ export function ValidationPlanTab({ idea }: ValidationPlanTabProps) {
           </div>
         ) : state.status === "has-plan" ? (
           <ValidationPlanTree
-            key={plan.generatedAt}
-            plan={plan.content}
-            generatedAt={plan.generatedAt}
-            triggeredByName={plan.triggeredBy.name}
+            key={state.plan.generatedAt}
+            plan={state.plan.content}
+            generatedAt={state.plan.generatedAt}
+            triggeredByName={state.plan.triggeredBy.name}
             onStepToggle={async (stepOrder, completed) => {
               const res = await fetch(`/api/ideas/${idea.id}/validation-plan`, {
                 method: "PATCH",
