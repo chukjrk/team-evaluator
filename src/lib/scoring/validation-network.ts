@@ -1,79 +1,76 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Contact, NetworkEntry } from "@prisma/client";
 import type { MemberWithProfile } from "@/lib/types/profile";
-import type { ValidationPlanCore, NetworkReachOut } from "@/lib/types/validation";
+import type { ValidationPlanCore, NetworkContactGroup, NetworkContact } from "@/lib/types/validation";
 
-const SYSTEM_PROMPT = `You are a startup validation strategist specializing in network leverage. Given a validation plan with specific steps and the founding team's real contacts, identify which specific people can help with which validation steps.
+const SYSTEM_PROMPT = `You are a startup validation strategist specializing in network leverage. Given a validation plan with specific steps and the founding team's real contacts, group the contacts into meaningful clusters and map each cluster to the validation steps it can accelerate.
 
-Your job is to map real contacts to specific validation steps — not produce generic outreach advice. Every recommendation must reference a real person from the provided contacts list and be tied to a specific validation step.
+Your job is to identify relationship clusters — groups of people who share a context (same program cohort, same company alumni network, same functional role) — and explain why each cluster is useful for specific validation steps. Grouping must be intent-driven and step-driven: different cohorts serve different trust contexts even if they help the same step, so they are separate groups.
 
 Rules:
-- Only include people from the provided contacts list; return empty array if no relevant contacts exist
-- Max 5 reach-outs total
-- Each reach-out must include forStep: the order number of the validation step it supports
-- Keep outreachAngle to 1-2 sentences — exactly what to say in the first message
-- Prioritize WARM contacts over MODERATE and COLD for the same step
-- Choose the single most relevant contact per validation step where possible
+- Only include people from the provided contacts list (referenced by their id); return empty array if no relevant contacts exist
+- Group by relationship context, not company alone — invent a short slug label that reflects the cluster (e.g. "vfa-cohort", "stripe-alumni", "b2b-saas-operators"), lowercase and hyphenated
+- Each group must map to at least one validation step via forSteps array
+- A group may map to multiple steps when the cluster is broadly useful
+- Each contact should appear in at most one group — the group that best fits their primary relationship context. Exception: a contact may appear in two different groups only if they are genuinely useful for different validation steps belonging to those groups. Never duplicate a contact within or across groups serving the same step
+- Write a group-level summary (1-2 sentences) explaining why the cluster is useful for the mapped steps — do not write individual outreach messages
+- Prioritize WARM contacts over MODERATE and COLD when forming high-priority groups
+- Aim for 3-7 meaningful groups; do not create singleton groups unless the contact is uniquely critical
+- Max 20 contacts per group
+- Write one outreachAngle per group — a sample first message referencing the specific validation step goal. It should feel specific to the relationship context of the group, not generic. Do not start with "I"
 - Do not use the words "innovative", "exciting", "promising", or "potential"`;
 
 const NETWORK_PLAN_TOOL: Anthropic.Tool = {
   name: "submit_network_plan",
   description:
-    "Submit the network reach-out recommendations mapped to specific validation steps.",
+    "Submit grouped contact recommendations mapped to specific validation steps. Groups are defined by relationship context — not by company alone.",
   input_schema: {
     type: "object" as const,
     properties: {
-      networkReachOuts: {
+      networkContactGroups: {
         type: "array",
         description:
-          "Up to 5 contacts from the team network to reach out to, each mapped to a specific validation step. Empty array if no relevant contacts.",
+          "Contact groups, each tied to one or more validation steps. Empty array if no relevant contacts exist.",
         items: {
           type: "object",
           properties: {
-            cofounderName: {
-              type: "string",
-              description: "Name of the team member who owns this contact.",
-            },
-            contactName: {
-              type: "string",
-              description: "Name of the person to reach out to.",
-            },
-            company: { type: "string" },
-            position: { type: "string" },
-            connectionStrength: {
-              type: "string",
-              enum: ["WARM", "MODERATE", "COLD"],
-            },
-            reason: {
+            groupLabel: {
               type: "string",
               description:
-                "Why this specific person is valuable for the mapped validation step.",
+                "Short slug label for this cluster. Invent from company/position patterns, e.g. 'vfa-cohort', 'stripe-alumni', 'mba-network'. Lowercase, hyphenated.",
+            },
+            summary: {
+              type: "string",
+              description:
+                "1-2 sentences explaining why this cluster is useful for the mapped validation steps. Do not name individual contacts here.",
             },
             outreachAngle: {
               type: "string",
               description:
-                "1-2 sentences: exactly what to say in the first message.",
+                "Sample opening message (1-2 sentences) you could send to someone in this group. Reference the specific validation step goal, not generic networking. Do not start with 'I'.",
+            },
+            forSteps: {
+              type: "array",
+              description:
+                "Array of validation step order numbers this group helps with. Must have at least one.",
+              items: { type: "integer" },
+              minItems: 1,
             },
             priority: { type: "string", enum: ["high", "medium"] },
-            forStep: {
-              type: "integer",
+            contactIds: {
+              type: "array",
               description:
-                "The order number of the validation step this contact can help with.",
+                "Indices (id field) of contacts from the input list that belong to this group. Min 1, max 20.",
+              items: { type: "integer" },
+              minItems: 1,
+              maxItems: 20,
             },
           },
-          required: [
-            "cofounderName",
-            "connectionStrength",
-            "reason",
-            "outreachAngle",
-            "priority",
-            "forStep",
-          ],
+          required: ["groupLabel", "summary", "outreachAngle", "forSteps", "priority", "contactIds"],
         },
-        maxItems: 5,
       },
     },
-    required: ["networkReachOuts"],
+    required: ["networkContactGroups"],
   },
 };
 
@@ -90,9 +87,10 @@ function buildNetworkContext(
     priority: s.priority,
   }));
 
-  const contacts = relevantContacts.map((c) => ({
+  // Include integer id for index-based output — name omitted to eliminate hallucination surface
+  const contacts = relevantContacts.map((c, idx) => ({
+    id: idx,
     cofounderName: c.cofounderName,
-    contactName: c.name ?? undefined,
     company: c.company ?? undefined,
     position: c.position ?? undefined,
     industryId: c.industryId ?? undefined,
@@ -117,7 +115,7 @@ export async function assessNetworkForPlan(
   members: MemberWithProfile[],
   allContacts: Contact[],
   allNetworkEntries: NetworkEntry[]
-): Promise<NetworkReachOut[]> {
+): Promise<NetworkContactGroup[]> {
   console.log("[validation-network] assessNetworkForPlan start", {
     contactCount: allContacts.length,
     networkEntryCount: allNetworkEntries.length,
@@ -129,14 +127,21 @@ export async function assessNetworkForPlan(
     if (m.profile) profileToMember.set(m.profile.id, m.name);
   }
 
-  // Tag contacts with cofounder name, filter to relevant industry, sort by strength, cap at 150
-  const STRENGTH_ORDER = { WARM: 0, MODERATE: 1, COLD: 2 };
-  const ideaIndustryId = undefined; // no idea reference here — network agent gets pre-filtered contacts
+  // Calibrated strength: stated connectionStrength × source reliability weight.
+  // Source reliability reflects how intentional the import was — manual entry is the strongest
+  // signal (conscious act), Google imports are weakest (low bar to be "in contacts").
+  const SOURCE_WEIGHT = { MANUAL: 1.0, LINKEDIN: 0.8, GOOGLE: 0.5 } as const;
+  const STRENGTH_SCORE = { WARM: 3, MODERATE: 2, COLD: 1 } as const;
+
+  function effectiveStrength(c: Contact): number {
+    return STRENGTH_SCORE[c.connectionStrength] * SOURCE_WEIGHT[c.source];
+  }
+
+  // Tag with cofounder name, sort by effective strength (descending), cap at 150
   const taggedContacts = allContacts
     .map((c) => ({ ...c, cofounderName: profileToMember.get(c.profileId) ?? "Team" }))
-    .sort((a, b) => STRENGTH_ORDER[a.connectionStrength] - STRENGTH_ORDER[b.connectionStrength])
+    .sort((a, b) => effectiveStrength(b) - effectiveStrength(a))
     .slice(0, 150);
-  void ideaIndustryId; // contacts already filtered by caller
 
   const taggedEntries = allNetworkEntries.map((e) => ({
     ...e,
@@ -157,7 +162,7 @@ export async function assessNetworkForPlan(
   try {
     message = await client.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 1500,
+      max_tokens: 2500,
       tools: [NETWORK_PLAN_TOOL],
       tool_choice: { type: "tool", name: "submit_network_plan" },
       system: [
@@ -199,11 +204,36 @@ export async function assessNetworkForPlan(
     );
   }
 
-  const result = toolUseBlock.input as { networkReachOuts: NetworkReachOut[] };
+  const raw = toolUseBlock.input as { networkContactGroups: Array<{ groupLabel: string; summary: string; outreachAngle: string; forSteps: number[]; priority: "high" | "medium"; contactIds: number[] }> };
 
-  if (!Array.isArray(result.networkReachOuts)) {
-    throw new Error("Network plan tool response missing networkReachOuts array");
+  if (!Array.isArray(raw.networkContactGroups)) {
+    throw new Error("Network plan tool response missing networkContactGroups array");
   }
 
-  return result.networkReachOuts;
+  // Resolve contactIds back to full NetworkContact objects from the tagged input array
+  // Filter out any out-of-bounds ids Claude may have returned
+  const groups: NetworkContactGroup[] = raw.networkContactGroups.map((g) => {
+    const contacts: NetworkContact[] = g.contactIds
+      .filter((id) => id >= 0 && id < taggedContacts.length)
+      .map((id) => {
+        const c = taggedContacts[id];
+        return {
+          cofounderName: c.cofounderName,
+          contactName: c.name ?? undefined,
+          company: c.company ?? undefined,
+          position: c.position ?? undefined,
+          connectionStrength: c.connectionStrength,
+        };
+      });
+    return {
+      groupLabel: g.groupLabel,
+      summary: g.summary,
+      outreachAngle: g.outreachAngle,
+      forSteps: g.forSteps,
+      priority: g.priority,
+      contacts,
+    };
+  }).filter((g) => g.contacts.length > 0); // drop groups where all ids were invalid
+
+  return groups;
 }
