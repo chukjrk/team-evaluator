@@ -99,6 +99,7 @@ export function ValidationPlanTree({
   );
   // null = collapsed, true = expanded (details view)
   const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set());
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const steps = plan.validationSteps;
   const totalSteps = steps.length;
@@ -119,6 +120,15 @@ export function ValidationPlanTree({
       const next = new Set(prev);
       if (next.has(order)) next.delete(order);
       else next.add(order);
+      return next;
+    });
+  }
+
+  function toggleGroup(label: string) {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
       return next;
     });
   }
@@ -274,70 +284,96 @@ export function ValidationPlanTree({
         </div>
       )}
 
-      {/* Network Reach-Outs */}
-      {plan.networkReachOuts.length > 0 && (
+      {/* Network Contact Groups */}
+      {(plan.networkContactGroups ?? []).length > 0 && (
         <div>
           <h4 className="text-xs font-semibold uppercase tracking-widest text-zinc-600 mb-2.5 flex items-center gap-1.5">
             <Users className="h-3.5 w-3.5" />
-            Network Reach-Outs
+            Network Contacts
           </h4>
-          <div className="space-y-2">
-            {plan.networkReachOuts.map((r, i) => (
-              <div
-                key={i}
-                className="rounded-lg border border-zinc-200 bg-white p-3 space-y-1.5"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1 flex-wrap">
-                      {r.contactName && (
-                        <span className="text-sm font-semibold text-zinc-800">
-                          {r.contactName}
-                        </span>
-                      )}
-                      {r.position && (
-                        <span className="text-xs text-zinc-600">{r.position}</span>
-                      )}
-                      {r.company && (
-                        <span className="text-xs text-zinc-600">· {r.company}</span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-zinc-500 mt-0.5">
-                      via{" "}
-                      <span className="font-medium text-zinc-700">{r.cofounderName}</span>
-                      {r.forStep != null && (() => {
-                        const step = plan.validationSteps.find((s) => s.order === r.forStep);
-                        return step ? (
-                          <span className="ml-1.5 text-violet-500">· Step {r.forStep}: {step.title}</span>
-                        ) : null;
-                      })()}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <span
-                      className={`rounded-full px-1.5 py-0.5 text-[11px] font-medium ${
-                        CONNECTION_STRENGTH_STYLES[r.connectionStrength]
-                      }`}
-                    >
-                      {r.connectionStrength.charAt(0) +
-                        r.connectionStrength.slice(1).toLowerCase()}
+          <div className="space-y-3">
+            {(plan.networkContactGroups ?? []).map((group) => {
+              const isExpanded = expandedGroups.has(group.groupLabel);
+              return (
+                <div key={group.groupLabel} className="rounded-xl border border-zinc-200 bg-white overflow-hidden">
+                  {/* Group header row */}
+                  <div className="flex items-center gap-2 flex-wrap px-3 pt-3 pb-2">
+                    <span className="font-mono text-[11px] font-semibold text-zinc-700 bg-zinc-100 px-1.5 py-0.5 rounded">
+                      {group.groupLabel}
                     </span>
+                    <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[11px] font-medium text-zinc-500">
+                      {group.contacts.length} contacts
+                    </span>
+                    {group.priority === "high" && (
+                      <span className="rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] font-medium text-orange-700">
+                        High priority
+                      </span>
+                    )}
                   </div>
+                  {/* forSteps chips */}
+                  {group.forSteps.length > 0 && (
+                    <div className="flex flex-wrap gap-1 px-3 pb-2">
+                      {group.forSteps.map((stepOrder) => {
+                        const step = plan.validationSteps.find((s) => s.order === stepOrder);
+                        return step ? (
+                          <span key={stepOrder} className="rounded-full bg-violet-50 border border-violet-200 px-1.5 py-0.5 text-[10px] text-violet-700">
+                            Step {stepOrder}: {step.title}
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
+                  {/* Summary */}
+                  <p className="text-[11px] text-zinc-500 leading-relaxed px-3 pb-2">{group.summary}</p>
+                  {/* Outreach angle */}
+                  <div className="mx-3 mb-2 rounded-md bg-zinc-50 border border-zinc-100 px-2.5 py-1.5">
+                    <p className="text-[10px] font-medium text-zinc-500 mb-0.5">Outreach angle</p>
+                    <p className="text-xs text-zinc-700 italic leading-relaxed">&ldquo;{group.outreachAngle}&rdquo;</p>
+                  </div>
+                  {/* Expand toggle */}
+                  <div className="border-t border-zinc-100">
+                    <button
+                      onClick={() => toggleGroup(group.groupLabel)}
+                      className="flex w-full items-center gap-1 px-3 py-2 text-[11px] text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50 transition-colors cursor-pointer"
+                    >
+                      {isExpanded ? (
+                        <><ChevronUp className="h-3 w-3" />Hide contacts</>
+                      ) : (
+                        <><ChevronDown className="h-3 w-3" />Show {group.contacts.length} contacts</>
+                      )}
+                    </button>
+                  </div>
+                  {/* Contact list */}
+                  {isExpanded && (
+                    <div className="border-t border-zinc-100 divide-y divide-zinc-100">
+                      {group.contacts.map((c, i) => (
+                        <div key={i} className="flex items-center justify-between gap-2 px-3 py-2">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1 flex-wrap">
+                              {c.contactName && (
+                                <span className="text-xs font-medium text-zinc-800">{c.contactName}</span>
+                              )}
+                              {c.position && (
+                                <span className="text-[11px] text-zinc-500">{c.contactName ? "·" : ""} {c.position}</span>
+                              )}
+                              {c.company && (
+                                <span className="text-[11px] text-zinc-500">· {c.company}</span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-zinc-400 mt-0.5">
+                              via <span className="font-medium text-zinc-500">{c.cofounderName}</span>
+                            </p>
+                          </div>
+                          <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${CONNECTION_STRENGTH_STYLES[c.connectionStrength]}`}>
+                            {c.connectionStrength.charAt(0) + c.connectionStrength.slice(1).toLowerCase()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <p className="text-xs text-zinc-600 leading-relaxed">
-                  <span className="font-medium text-zinc-700">Why: </span>
-                  {r.reason}
-                </p>
-                <div className="rounded-md bg-zinc-50 border border-zinc-100 px-2.5 py-1.5">
-                  <p className="text-[11px] font-medium text-zinc-600 mb-0.5">
-                    Outreach angle
-                  </p>
-                  <p className="text-xs text-zinc-700 italic leading-relaxed">
-                    &ldquo;{r.outreachAngle}&rdquo;
-                  </p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
