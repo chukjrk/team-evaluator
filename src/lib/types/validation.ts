@@ -25,34 +25,39 @@ export const STEP_TYPE_LABELS = {
   "mvp-test": "MVP Test",
 } as const satisfies Record<ValidationStep["type"], string>;
 
-export interface NetworkReachOut {
-  cofounderName: string; // which team member owns this contact
+export interface NetworkContact {
+  cofounderName: string;
   contactName?: string;
   company?: string;
   position?: string;
   connectionStrength: "WARM" | "MODERATE" | "COLD";
-  reason: string; // why this person is relevant
-  outreachAngle: string; // what to say / how to approach
+}
+
+export interface NetworkContactGroup {
+  groupLabel: string;    // Claude-invented slug, e.g. "vfa-cohort", "stripe-alumni"
+  summary: string;       // 1-2 sentences why this cluster helps the mapped steps
+  outreachAngle: string; // sample opening message referencing the validation step goal
+  forSteps: number[];    // validation step order numbers (min 1)
   priority: "high" | "medium";
-  forStep?: number; // maps to validationStep.order
+  contacts: NetworkContact[];
 }
 
 export const CONNECTION_STRENGTH_STYLES = {
   WARM: "bg-green-100 text-green-700",
   MODERATE: "bg-yellow-100 text-yellow-700",
   COLD: "bg-zinc-100 text-zinc-500",
-} as const satisfies Record<NetworkReachOut["connectionStrength"], string>;
+} as const satisfies Record<NetworkContact["connectionStrength"], string>;
 
 export interface StoredValidationPlan {
   hypothesis: string; // primary thing to validate
   validationSteps: ValidationStep[];
-  networkReachOuts: NetworkReachOut[]; // specific contacts from workspace network
+  networkContactGroups: NetworkContactGroup[];
   successCriteria: string[];
   estimatedTimeline: string;
   reevaluationTriggers: string[]; // key findings that would change the score
 }
 
-export type ValidationPlanCore = Omit<StoredValidationPlan, "networkReachOuts">;
+export type ValidationPlanCore = Omit<StoredValidationPlan, "networkContactGroups">;
 
 export interface ValidationPlanResponse {
   id: string;
