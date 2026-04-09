@@ -24,7 +24,9 @@ interface IdeaFormProps {
 export function IdeaForm({ open, onOpenChange, existing, onSaved }: IdeaFormProps) {
   const [title, setTitle] = useState(existing?.title ?? "");
   const [problem, setProblem] = useState(existing?.problemStatement ?? "");
-  const [targetCustomer, setTargetCustomer] = useState(existing?.targetCustomer ?? "");
+  const [who, setWho] = useState(existing?.targetCustomerWho ?? existing?.targetCustomer ?? "");
+  const [workaround, setWorkaround] = useState(existing?.targetCustomerWorkaround ?? "");
+  const [costOfInaction, setCostOfInaction] = useState(existing?.targetCustomerCostOfInaction ?? "");
   const [industry, setIndustry] = useState<string>(existing?.industryId ?? "");
   const [notes, setNotes] = useState(existing?.notes ?? "");
   const [saving, setSaving] = useState(false);
@@ -37,7 +39,15 @@ export function IdeaForm({ open, onOpenChange, existing, onSaved }: IdeaFormProp
     }
     setSaving(true);
     try {
-      const payload = { title, problemStatement: problem, targetCustomer, industryId: industry, notes: notes || undefined };
+      const payload = {
+        title,
+        problemStatement: problem,
+        targetCustomerWho: who,
+        targetCustomerWorkaround: workaround,
+        targetCustomerCostOfInaction: costOfInaction,
+        industryId: industry,
+        notes: notes || undefined,
+      };
       const url = existing ? `/api/ideas/${existing.id}` : "/api/ideas";
       const method = existing ? "PUT" : "POST";
 
@@ -98,13 +108,38 @@ export function IdeaForm({ open, onOpenChange, existing, onSaved }: IdeaFormProp
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-zinc-700">
-              Target customer
-            </label>
-            <Input
-              value={targetCustomer}
-              onChange={(e) => setTargetCustomer(e.target.value)}
-              placeholder="e.g. Independent clinic owners with 3-10 staff"
+            <label className="text-sm font-medium text-zinc-700">Who specifically?</label>
+            <Textarea
+              value={who}
+              onChange={(e) => setWho(e.target.value)}
+              placeholder="e.g. A clinic manager who built a spreadsheet to track patient no-shows because the EHR doesn't do it"
+              rows={2}
+              required
+              minLength={5}
+              maxLength={500}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-zinc-700">What are they doing today instead?</label>
+            <Textarea
+              value={workaround}
+              onChange={(e) => setWorkaround(e.target.value)}
+              placeholder="e.g. Manual spreadsheets, hiring a VA, or paying for 3 separate tools that don't talk to each other"
+              rows={2}
+              required
+              minLength={5}
+              maxLength={500}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-zinc-700">What&apos;s the cost of inaction?</label>
+            <Textarea
+              value={costOfInaction}
+              onChange={(e) => setCostOfInaction(e.target.value)}
+              placeholder="e.g. Patients fall through the cracks, revenue lost on no-shows, staff spends 2hrs/day on manual follow-ups"
+              rows={2}
               required
               minLength={5}
               maxLength={500}
