@@ -16,8 +16,10 @@ import { IdeaSkillCoverage } from "./IdeaSkillCoverage";
 import { TimeEstimateChip } from "./TimeEstimateChip";
 import { AIInsightCard } from "./AIInsightCard";
 import { ScoreLoadingState } from "./ScoreLoadingState";
+import { PivotSuggestionsCard } from "./PivotSuggestionsCard";
 import type { IdeaData, Visibility } from "@/lib/types/idea";
 import type { AIScoreResult, StoredReasoning, Recommendation } from "@/lib/types/scoring";
+import type { PivotPlan } from "@/lib/types/pivot";
 
 interface EvaluationPanelProps {
   idea: IdeaData;
@@ -35,6 +37,7 @@ export function EvaluationPanel({
   onOpenEdit,
 }: EvaluationPanelProps) {
   const [evaluating, setEvaluating] = useState(false);
+  const [generatingPivot, setGeneratingPivot] = useState(false);
   const isOwner = idea.submitterId === currentMemberId;
 
   async function handleEvaluate() {
@@ -85,6 +88,27 @@ export function EvaluationPanel({
 
   const reasoning = idea.score?.aiReasoning as StoredReasoning | undefined;
   const reevalScore = idea.score?.reevalScore as AIScoreResult | null | undefined;
+  const pivotPlan = idea.score?.pivotPlan as PivotPlan | null | undefined;
+
+  async function handleGeneratePivot() {
+    setGeneratingPivot(true);
+    try {
+      const res = await fetch(`/api/ideas/${idea.id}/pivot`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "Pivot analysis failed");
+        return;
+      }
+      onIdeaUpdated({
+        ...idea,
+        score: idea.score ? { ...idea.score, pivotPlan: data.pivotPlan, pivotAt: data.pivotAt } : null,
+      });
+    } catch {
+      toast.error("Something went wrong during pivot analysis");
+    } finally {
+      setGeneratingPivot(false);
+    }
+  }
 
   const RECOMMENDATION_CONFIG: Record<
     Recommendation,
@@ -182,6 +206,7 @@ export function EvaluationPanel({
               networkScore={idea.score.networkScore}
               ideaQualityScore={idea.score.ideaQualityScore}
               teamIdeaFitScore={idea.score.teamIdeaFitScore}
+              desperationScore={idea.score.desperationScore ?? 0}
               compositeScore={idea.score.compositeScore}
             />
 
@@ -223,11 +248,19 @@ export function EvaluationPanel({
               />
             )}
 
+            <PivotSuggestionsCard
+              pivotPlan={pivotPlan ?? null}
+              pivotAt={idea.score.pivotAt ?? null}
+              generating={generatingPivot}
+              onGenerate={handleGeneratePivot}
+            />
+
             {/* Post-validation re-evaluation block */}
             {reevalScore && idea.score.reevalAt && (() => {
               const rec = RECOMMENDATION_CONFIG[reevalScore.recommendation];
               const qDelta = Math.round(reevalScore.ideaQualityScore - idea.score!.ideaQualityScore);
               const fitDelta = Math.round(reevalScore.teamIdeaFitScore - idea.score!.teamIdeaFitScore);
+              const despDelta = Math.round((reevalScore.desperationScore ?? 0) - (idea.score!.desperationScore ?? 0));
               function delta(n: number) {
                 return n > 0 ? `+${n}` : `${n}`;
               }
@@ -263,6 +296,15 @@ export function EvaluationPanel({
                       </p>
                       <p className={`text-[10px] font-medium ${fitDelta >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
                         {delta(fitDelta)}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-[10px] text-zinc-500">Desperation</p>
+                      <p className="text-sm font-bold text-zinc-800">
+                        {Math.round(reevalScore.desperationScore ?? 0)}
+                      </p>
+                      <p className={`text-[10px] font-medium ${despDelta >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                        {delta(despDelta)}
                       </p>
                     </div>
                   </div>

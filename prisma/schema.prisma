@@ -211,6 +211,8 @@ model IdeaScore {
   modelVersion        String    @default("claude-sonnet-4-6")
   reevalScore         Json?     // AIScoreResult shape — set after validation re-evaluation
   reevalAt            DateTime? // when re-evaluation was last run
+  pivotPlan           Json?     // PivotPlan shape — set on demand by user
+  pivotAt             DateTime? // when pivot analysis was last generated
 
   ideaId String @unique
   idea   Idea   @relation(fields: [ideaId], references: [id], onDelete: Cascade)

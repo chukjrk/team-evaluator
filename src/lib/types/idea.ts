@@ -1,5 +1,6 @@
 import type { Visibility } from "@prisma/client";
 import type { AIScoreResult, ScoreResult } from "./scoring";
+import type { PivotPlan } from "./pivot";
 
 export type { Visibility };
 
@@ -22,5 +23,7 @@ export interface IdeaData {
     modelVersion: string;
     reevalScore?: AIScoreResult | null;
     reevalAt?: Date | null;
+    pivotPlan?: PivotPlan | null;
+    pivotAt?: Date | null;
   }) | null;
 }
