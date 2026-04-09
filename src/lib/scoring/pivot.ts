@@ -13,7 +13,7 @@ pivotType must be one of:
 - "adjacent-who": a slightly different person who has the same underlying pain more intensely
 - "change-how": same customer, different entry point or delivery that surfaces higher urgency
 
-Rules:
+Rules: Aim for brevity in all fields.
 - newTargetCustomer must describe a specific job-to-be-done with behavioral triggers, NOT a demographic or industry bucket. Bad: "healthcare workers". Good: "a clinic manager who has already built a spreadsheet to track patient no-shows because the EHR doesn't do it".
 - desperationRationale must explain concrete behavioral evidence — what they are already doing that proves desperation.
 - validationShortcut must be one concrete action (a call to make, a community to post in, a database to search) — not a category like "do customer interviews".
@@ -46,7 +46,13 @@ export async function generatePivotPlan(
       idea: {
         title: idea.title,
         problem: idea.problemStatement,
-        targetCustomer: idea.targetCustomer,
+        targetCustomer: idea.targetCustomerWho
+          ? {
+              who: idea.targetCustomerWho,
+              workaround: idea.targetCustomerWorkaround ?? null,
+              costOfInaction: idea.targetCustomerCostOfInaction ?? null,
+            }
+          : idea.targetCustomer,
         industryId: idea.industryId,
         notes: idea.notes ?? null,
       },

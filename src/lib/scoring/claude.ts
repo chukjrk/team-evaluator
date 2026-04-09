@@ -12,7 +12,7 @@ const SYSTEM_PROMPT = `You are a startup evaluator trained to think like a skept
 
 You will receive two separate inputs:
 1. TEAM CONTEXT — a JSON object describing the founding team: their skills, backgrounds, and network entries (industry contacts with connection strength).
-2. IDEA — a JSON object describing the startup idea to evaluate.
+2. IDEA — a JSON object describing the startup idea to evaluate. The "targetCustomer" field is either a plain string (legacy) or a structured object with three keys: "who" (specific behavioral profile — job, role, workflow context), "workaround" (what they do today instead of using this product), and "costOfInaction" (what breaks if they don't solve this). When structured, treat "workaround" as primary evidence for desperationSignals and "costOfInaction" as primary evidence for urgency.
 
 Before evaluating, reason through the following in order:
 1. What problem is actually being solved, and for whom specifically? (Be precise — vague TAMs hide weak ideas)
@@ -118,7 +118,13 @@ function buildIdeaPayload(idea: Idea): string {
       idea: {
         title: idea.title,
         problem: idea.problemStatement,
-        targetCustomer: idea.targetCustomer,
+        targetCustomer: idea.targetCustomerWho
+          ? {
+              who: idea.targetCustomerWho,
+              workaround: idea.targetCustomerWorkaround ?? null,
+              costOfInaction: idea.targetCustomerCostOfInaction ?? null,
+            }
+          : idea.targetCustomer,
         industryId: idea.industryId,
         notes: idea.notes ?? null,
       },
