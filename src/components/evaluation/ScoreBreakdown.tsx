@@ -13,6 +13,7 @@ interface ScoreBreakdownProps {
   networkScore: number;
   ideaQualityScore: number;
   teamIdeaFitScore: number;
+  desperationScore: number;
   compositeScore: number;
 }
 
@@ -46,13 +47,15 @@ export function ScoreBreakdown({
   networkScore,
   ideaQualityScore,
   teamIdeaFitScore,
+  desperationScore,
   compositeScore,
 }: ScoreBreakdownProps) {
   const rows: ScoreRow[] = [
-    { label: "Team Skills", score: teamSkillScore, description: "Coverage & complementarity across cofounders" },
-    { label: "Network", score: networkScore, description: "Reach & relevance to idea's target market" },
-    { label: "Idea Quality", score: ideaQualityScore, description: "Problem clarity, market opportunity, competition" },
+    { label: "Team Skills",   score: teamSkillScore,   description: "Coverage & complementarity across cofounders" },
+    { label: "Network",       score: networkScore,      description: "Reach & relevance to idea's target market" },
+    { label: "Idea Quality",  score: ideaQualityScore, description: "Problem clarity, competition, defensibility" },
     { label: "Team–Idea Fit", score: teamIdeaFitScore, description: "How well skills match what this idea needs" },
+    { label: "Desperation",   score: desperationScore, description: "Customer urgency & segment behavioral specificity" },
   ];
 
   const cardStyle = compositeCardStyle(compositeScore);
