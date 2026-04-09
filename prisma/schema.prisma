@@ -101,7 +101,10 @@ model Idea {
   id               String     @id @default(cuid())
   title            String
   problemStatement String     @db.Text
-  targetCustomer   String     @db.Text
+  targetCustomer              String?   @db.Text   // legacy — null on new ideas
+  targetCustomerWho           String?   @db.Text
+  targetCustomerWorkaround    String?   @db.Text
+  targetCustomerCostOfInaction String?  @db.Text
   industryId       String
   industry         Industry   @relation(fields: [industryId], references: [id])
   notes            String?    @db.Text
