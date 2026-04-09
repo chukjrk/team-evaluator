@@ -182,10 +182,31 @@ export function EvaluationPanel({
             <span className="font-medium text-zinc-600">Problem: </span>
             {idea.problemStatement}
           </div>
-          <div>
-            <span className="font-medium text-zinc-600">Customer: </span>
-            {idea.targetCustomer}
-          </div>
+          {idea.targetCustomerWho ? (
+            <div className="space-y-1">
+              <div>
+                <span className="font-medium text-zinc-600">Who: </span>
+                {idea.targetCustomerWho}
+              </div>
+              {idea.targetCustomerWorkaround && (
+                <div>
+                  <span className="font-medium text-zinc-600">Today: </span>
+                  {idea.targetCustomerWorkaround}
+                </div>
+              )}
+              {idea.targetCustomerCostOfInaction && (
+                <div>
+                  <span className="font-medium text-zinc-600">Cost of inaction: </span>
+                  {idea.targetCustomerCostOfInaction}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div>
+              <span className="font-medium text-zinc-600">Customer: </span>
+              {idea.targetCustomer}
+            </div>
+          )}
           {idea.notes && (
             <div>
               <span className="font-medium text-zinc-600">Notes: </span>
