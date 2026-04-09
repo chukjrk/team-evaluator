@@ -7,7 +7,9 @@ import { INDUSTRY_IDS } from "@/lib/constants/industries";
 const createIdeaSchema = z.object({
   title: z.string().min(3).max(100),
   problemStatement: z.string().min(10).max(2000),
-  targetCustomer: z.string().min(5).max(500),
+  targetCustomerWho: z.string().min(5).max(500),
+  targetCustomerWorkaround: z.string().min(5).max(500),
+  targetCustomerCostOfInaction: z.string().min(5).max(500),
   industryId: z.string().refine((v) => (INDUSTRY_IDS as readonly string[]).includes(v), {
     message: "Invalid industry",
   }),
@@ -64,6 +66,7 @@ export async function POST(req: NextRequest) {
   const idea = await prisma.idea.create({
     data: {
       ...rest,
+      targetCustomer: null,
       industryId,
       workspaceId: member.workspaceId,
       submitterId: member.id,
