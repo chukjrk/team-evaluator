@@ -26,25 +26,23 @@ export async function generateValidationPlan(
 
   console.log("[validation] steps generated, assessing network...");
 
-  // Step 2: filter contacts to idea industry before passing to network agent
-  const relevantContacts = allContacts.filter(
-    (c) => c.industryId === idea.industryId || c.industryId === null
-  );
-
-  // Step 3: map network contacts to specific steps
-  const networkReachOuts = await assessNetworkForPlan(
+  // Step 2: map network contacts to specific steps
+  // No hard industry pre-filter — effective_strength sort in the agent handles prioritization,
+  // and Claude evaluates relevance to each step. A lawyer matters for a legal step regardless
+  // of whether their industryId matches the idea's industry.
+  const networkContactGroups = await assessNetworkForPlan(
     planCore,
     members,
-    relevantContacts,
+    allContacts,
     allNetworkEntries
   );
 
   console.log("[validation] network assessment complete", {
-    reachOutCount: networkReachOuts.length,
+    groupCount: networkContactGroups.length,
   });
 
   return {
     ...planCore,
-    networkReachOuts,
+    networkContactGroups,
   };
 }
