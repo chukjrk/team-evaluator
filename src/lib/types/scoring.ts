@@ -3,6 +3,7 @@ export type Recommendation = "pass" | "watch" | "conditional-proceed" | "proceed
 export interface AIScoreResult {
   ideaQualityScore: number;
   teamIdeaFitScore: number;
+  desperationScore: number;
   overallViabilityScore: number;
   recommendation: Recommendation;
   timeToFirstCustomer: string;
@@ -14,6 +15,11 @@ export interface AIScoreResult {
       competitiveLandscape: number;
       defensibility: number;
       revenueModel: number;
+      notes: string;
+    };
+    desperation: {
+      desperationSignals: number;
+      segmentNarrowness: number;
       notes: string;
     };
     teamFit: {
@@ -57,6 +63,7 @@ export interface ScoreResult {
   networkScore: number;
   ideaQualityScore: number;
   teamIdeaFitScore: number;
+  desperationScore: number;
   compositeScore: number;
   timeToFirstCustomer: string;
   aiNarrative: string;

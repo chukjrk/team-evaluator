@@ -7,7 +7,9 @@ import { INDUSTRY_IDS } from "@/lib/constants/industries";
 const updateSchema = z.object({
   title: z.string().min(3).max(100).optional(),
   problemStatement: z.string().min(10).max(2000).optional(),
-  targetCustomer: z.string().min(5).max(500).optional(),
+  targetCustomerWho: z.string().min(5).max(500).optional(),
+  targetCustomerWorkaround: z.string().min(5).max(500).optional(),
+  targetCustomerCostOfInaction: z.string().min(5).max(500).optional(),
   industryId: z
     .string()
     .refine((v) => (INDUSTRY_IDS as readonly string[]).includes(v), {

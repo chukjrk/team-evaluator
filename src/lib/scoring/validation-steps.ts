@@ -108,7 +108,13 @@ function buildIdeaAndScorePayload(idea: Idea, score: IdeaScore): string {
       idea: {
         title: idea.title,
         problem: idea.problemStatement,
-        targetCustomer: idea.targetCustomer,
+        targetCustomer: idea.targetCustomerWho
+          ? {
+              who: idea.targetCustomerWho,
+              workaround: idea.targetCustomerWorkaround ?? null,
+              costOfInaction: idea.targetCustomerCostOfInaction ?? null,
+            }
+          : idea.targetCustomer,
         industryId: idea.industryId,
         notes: idea.notes ?? null,
       },
