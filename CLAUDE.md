@@ -45,7 +45,7 @@ In `.env.local`:
 Schema models:
 - `Industry` — lookup table with slug PK (e.g. `"enterprise-saas"`) and `label`. All industry FK fields across models reference this table.
 - `Workspace` → `WorkspaceMember` → `CofounderProfile` → `NetworkEntry` (aggregate) + `Contact` (individual, from imports/manual).
-- `Idea` — belongs to workspace + submitter, has `industryId` FK. 1:1 `IdeaScore` (cached eval). 1:1 `ValidationPlan` (AI-generated, workspace-visible).
+- `Idea` — belongs to workspace + submitter, has `industryId` FK. 1:1 `IdeaScore` (cached eval). 1:1 `ValidationPlan` (AI-generated, workspace-visible). `targetCustomer String?` is legacy (null on new ideas); new ideas use three structured fields: `targetCustomerWho`, `targetCustomerWorkaround`, `targetCustomerCostOfInaction` (all `String?`). Scoring files pass a structured object `{ who, workaround, costOfInaction }` to Claude when the new fields are present, falling back to the legacy string.
 - `IdeaScore` — has `desperationScore Float` (5th composite dimension), `reevalScore Json?` (stores `AIScoreResult` after re-evaluation), `reevalAt DateTime?`, `pivotPlan Json?` (on-demand pivot analysis), `pivotAt DateTime?`.
 - `Contact` — individual person from Google/LinkedIn/manual import. Has `name`, `company`, `domain`, `position`, `industryId`, `connectionStrength`, `source` (enum: GOOGLE/LINKEDIN/MANUAL), `embedding Float[]` (always `[]` until pgvector). Belongs to `CofounderProfile`.
 - `CompanyIndustryCache` — domain→industryId cache (domain as PK). `NetworkImportSession` — in-progress import groups per member (1-hour TTL, v2 envelope format).
@@ -116,7 +116,7 @@ Key routes:
 
 - `src/lib/constants/skills.ts` — `SKILLS_TAXONOMY` with three categories and a `SkillKey` union type. Skills are stored as `string[]` in DB; `SkillKey` is enforced only at input boundaries.
 - `src/lib/constants/industries.ts` — exports `INDUSTRY_IDS` (string array of slugs) and `IndustryId` type. Labels are **not** hardcoded here — they come from the `Industry` DB table via `GET /api/industries`. All UI dropdowns fetch from that route.
-- `src/lib/types/idea.ts` — `IdeaData` with `industry: { id, label }` (relation object, not string).
+- `src/lib/types/idea.ts` — `IdeaData` with `industry: { id, label }` (relation object, not string). `targetCustomer` is `string | null | undefined` (legacy); new ideas expose `targetCustomerWho`, `targetCustomerWorkaround`, `targetCustomerCostOfInaction` (all optional/nullable).
 - `src/lib/types/profile.ts` — `MemberWithProfile`, `NetworkEntryData` (with `industry: { id, label }`), `ContactData`.
 - `src/lib/types/import.ts` — `CategorizedGroup` (uses `industryId`), `StagedContact`, `ImportSessionData` (v2 envelope), `parseSessionData()` (handles legacy bare arrays).
 - `src/lib/types/validation.ts` — `StoredValidationPlan`, `ValidationPlanCore` (= `Omit<StoredValidationPlan, "networkReachOuts">`), `ValidationStep` (with optional `completed`, `supportingNotes`, `contradictingNotes`, `dataSources`), `NetworkReachOut` (with optional `forStep`), `ValidationPlanResponse`.
