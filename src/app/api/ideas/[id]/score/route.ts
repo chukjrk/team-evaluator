@@ -80,6 +80,7 @@ export async function POST(
       networkScore: scoreResult.networkScore,
       ideaQualityScore: scoreResult.ideaQualityScore,
       teamIdeaFitScore: scoreResult.teamIdeaFitScore,
+      desperationScore: scoreResult.desperationScore,
       compositeScore: scoreResult.compositeScore,
       timeToFirstCustomer: scoreResult.timeToFirstCustomer,
       aiNarrative: scoreResult.aiNarrative,
@@ -90,11 +91,15 @@ export async function POST(
       networkScore: scoreResult.networkScore,
       ideaQualityScore: scoreResult.ideaQualityScore,
       teamIdeaFitScore: scoreResult.teamIdeaFitScore,
+      desperationScore: scoreResult.desperationScore,
       compositeScore: scoreResult.compositeScore,
       timeToFirstCustomer: scoreResult.timeToFirstCustomer,
       aiNarrative: scoreResult.aiNarrative,
       aiReasoning: scoreResult.aiReasoning as object,
       generatedAt: new Date(),
+      // Clear stale pivot when re-scoring
+      pivotPlan: { set: null },
+      pivotAt: null,
     },
   });
 

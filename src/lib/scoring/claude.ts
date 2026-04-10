@@ -12,7 +12,7 @@ const SYSTEM_PROMPT = `You are a startup evaluator trained to think like a skept
 
 You will receive two separate inputs:
 1. TEAM CONTEXT — a JSON object describing the founding team: their skills, backgrounds, and network entries (industry contacts with connection strength).
-2. IDEA — a JSON object describing the startup idea to evaluate.
+2. IDEA — a JSON object describing the startup idea to evaluate. The "targetCustomer" field is either a plain string (legacy) or a structured object with three keys: "who" (specific behavioral profile — job, role, workflow context), "workaround" (what they do today instead of using this product), and "costOfInaction" (what breaks if they don't solve this). When structured, treat "workaround" as primary evidence for desperationSignals and "costOfInaction" as primary evidence for urgency.
 
 Before evaluating, reason through the following in order:
 1. What problem is actually being solved, and for whom specifically? (Be precise — vague TAMs hide weak ideas)
@@ -30,6 +30,7 @@ Evaluate and return ONLY valid JSON with this exact schema:
 {
   "ideaQualityScore": <integer 0-100>,
   "teamIdeaFitScore": <integer 0-100>,
+  "desperationScore": <integer 0-100 — How strongly does this idea target a customer who is desperate for a solution? Score high (75-100) if the target customer exhibits behavioral pull: self-built workarounds, spending on inferior substitutes, expressing urgency to switch. Score low (0-40) if the need is speculative, aspirational, or a nice-to-have with no pull-through behavior.>,
   "overallViabilityScore": <integer 0-100>,
   "recommendation": "pass" | "watch" | "conditional-proceed" | "proceed",
   "timeToFirstCustomer": "<range string, e.g. '3-6 months'>",
@@ -42,6 +43,11 @@ Evaluate and return ONLY valid JSON with this exact schema:
       "defensibility": <integer 0-10>,
       "revenueModel": <integer 0-10>,
       "notes": "<string. Must identify the most likely reason this idea fails, not general observations.>"
+    },
+    "desperation": {
+      "desperationSignals": <integer 0-10 — Concrete behavioral evidence customers are desperate. Score low (0-3) if the target customer is described as an industry or demographic (e.g. 'healthcare workers', 'SMBs'). Score high (7-10) only if the description implies someone who has already tried to solve this themselves, pays for workarounds, or faces a workflow that breaks without a solution.>,
+      "segmentNarrowness": <integer 0-10 — Precision of the target 'who'. 8-10 = defined as a specific job-to-be-done with behavioral triggers (e.g. 'a CFO who just missed a board covenant'). 1-3 = a demographic or industry bucket with no behavioral specificity (e.g. 'SMBs in healthcare').>,
+      "notes": "<string — the most important signal, or absence of signal, driving this idea's desperation score>"
     },
     "teamFit": {
       "skillAlignment": <integer 0-10>,
@@ -112,7 +118,13 @@ function buildIdeaPayload(idea: Idea): string {
       idea: {
         title: idea.title,
         problem: idea.problemStatement,
-        targetCustomer: idea.targetCustomer,
+        targetCustomer: idea.targetCustomerWho
+          ? {
+              who: idea.targetCustomerWho,
+              workaround: idea.targetCustomerWorkaround ?? null,
+              costOfInaction: idea.targetCustomerCostOfInaction ?? null,
+            }
+          : idea.targetCustomer,
         industryId: idea.industryId,
         notes: idea.notes ?? null,
       },
@@ -141,6 +153,7 @@ function validateAndNormalize(raw: unknown): AIScoreResult {
   // Clamp scores defensively
   r.ideaQualityScore = clamp(r.ideaQualityScore, 0, 100);
   r.teamIdeaFitScore = clamp(r.teamIdeaFitScore, 0, 100);
+  r.desperationScore = clamp((r.desperationScore as number) ?? 0, 0, 100);
 
   return r as unknown as AIScoreResult;
 }

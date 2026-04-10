@@ -93,6 +93,24 @@ export function AIInsightCard({ narrative, reasoning }: AIInsightCardProps) {
             )}
           </div>
 
+          {/* Desperation */}
+          {reasoning.desperation && (
+            <div>
+              <SectionHeader label="Desperation Breakdown" />
+              <div className="space-y-2">
+                {[
+                  { label: "Desperation Signals", val: reasoning.desperation.desperationSignals },
+                  { label: "Segment Narrowness",  val: reasoning.desperation.segmentNarrowness },
+                ].map(({ label, val }) => (
+                  <SubScoreBar key={label} label={label} val={val ?? 0} color="#f97316" />
+                ))}
+              </div>
+              {reasoning.desperation.notes && (
+                <p className="text-xs text-zinc-500 italic mt-2">{reasoning.desperation.notes}</p>
+              )}
+            </div>
+          )}
+
           {/* Team Fit */}
           <div>
             <SectionHeader icon={<Users className="h-3.5 w-3.5 text-blue-400" />} label="Team Fit Breakdown" />

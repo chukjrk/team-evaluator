@@ -101,7 +101,10 @@ model Idea {
   id               String     @id @default(cuid())
   title            String
   problemStatement String     @db.Text
-  targetCustomer   String     @db.Text
+  targetCustomer              String?   @db.Text   // legacy — null on new ideas
+  targetCustomerWho           String?   @db.Text
+  targetCustomerWorkaround    String?   @db.Text
+  targetCustomerCostOfInaction String?  @db.Text
   industryId       String
   industry         Industry   @relation(fields: [industryId], references: [id])
   notes            String?    @db.Text
@@ -202,6 +205,7 @@ model IdeaScore {
   networkScore        Float
   ideaQualityScore    Float
   teamIdeaFitScore    Float
+  desperationScore    Float     @default(0)
   compositeScore      Float
   timeToFirstCustomer String
   aiNarrative         String    @db.Text
@@ -210,6 +214,8 @@ model IdeaScore {
   modelVersion        String    @default("claude-sonnet-4-6")
   reevalScore         Json?     // AIScoreResult shape — set after validation re-evaluation
   reevalAt            DateTime? // when re-evaluation was last run
+  pivotPlan           Json?     // PivotPlan shape — set on demand by user
+  pivotAt             DateTime? // when pivot analysis was last generated
 
   ideaId String @unique
   idea   Idea   @relation(fields: [ideaId], references: [id], onDelete: Cascade)

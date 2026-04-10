@@ -45,8 +45,8 @@ In `.env.local`:
 Schema models:
 - `Industry` — lookup table with slug PK (e.g. `"enterprise-saas"`) and `label`. All industry FK fields across models reference this table.
 - `Workspace` → `WorkspaceMember` → `CofounderProfile` → `NetworkEntry` (aggregate) + `Contact` (individual, from imports/manual).
-- `Idea` — belongs to workspace + submitter, has `industryId` FK. 1:1 `IdeaScore` (cached eval). 1:1 `ValidationPlan` (AI-generated, workspace-visible).
-- `IdeaScore` — has `reevalScore Json?` (stores `AIScoreResult` after re-evaluation) and `reevalAt DateTime?` (timestamp of last re-eval).
+- `Idea` — belongs to workspace + submitter, has `industryId` FK. 1:1 `IdeaScore` (cached eval). 1:1 `ValidationPlan` (AI-generated, workspace-visible). `targetCustomer String?` is legacy (null on new ideas); new ideas use three structured fields: `targetCustomerWho`, `targetCustomerWorkaround`, `targetCustomerCostOfInaction` (all `String?`). Scoring files pass a structured object `{ who, workaround, costOfInaction }` to Claude when the new fields are present, falling back to the legacy string.
+- `IdeaScore` — has `desperationScore Float` (5th composite dimension), `reevalScore Json?` (stores `AIScoreResult` after re-evaluation), `reevalAt DateTime?`, `pivotPlan Json?` (on-demand pivot analysis), `pivotAt DateTime?`.
 - `Contact` — individual person from Google/LinkedIn/manual import. Has `name`, `company`, `domain`, `position`, `industryId`, `connectionStrength`, `source` (enum: GOOGLE/LINKEDIN/MANUAL), `embedding Float[]` (always `[]` until pgvector). Belongs to `CofounderProfile`.
 - `CompanyIndustryCache` — domain→industryId cache (domain as PK). `NetworkImportSession` — in-progress import groups per member (1-hour TTL, v2 envelope format).
 
@@ -70,9 +70,9 @@ Located in `src/lib/scoring/`. `computeFullScore` orchestrates:
 
 2. **Network** (`network.ts`) — deterministic. Hybrid: prefers `Contact[]` (1 record = 1 person, `computeNetworkScoreFromContacts`) when contacts exist; falls back to `NetworkEntry[]` aggregates (`computeNetworkScore`). Strength-weighted contact count (log scale), 60% size + 40% industry relevance match via `industryId`.
 
-3. **Claude AI** (`claude.ts`) — calls `claude-sonnet-4-6` via `client.messages.create` with `cache_control: { type: "ephemeral" }` blocks. Team context is cached (ephemeral, 5-min TTL); the idea payload is uncached. Returns `ideaQualityScore`, `teamIdeaFitScore`, `timeToFirstCustomer`, `narrative`, and detailed `reasoning`.
+3. **Claude AI** (`claude.ts`) — calls `claude-sonnet-4-6` via `client.messages.create` with `cache_control: { type: "ephemeral" }` blocks. Team context is cached (ephemeral, 5-min TTL); the idea payload is uncached. Returns `ideaQualityScore`, `teamIdeaFitScore`, `desperationScore`, `timeToFirstCustomer`, `narrative`, and detailed `reasoning` (including `reasoning.desperation` with `desperationSignals` and `segmentNarrowness` sub-scores 0-10).
 
-Composite formula: `0.25 × TeamSkill + 0.20 × Network + 0.30 × IdeaQuality + 0.25 × TeamIdeaFit`
+Composite formula: `0.225 × TeamSkill + 0.175 × Network + 0.275 × IdeaQuality + 0.225 × TeamIdeaFit + 0.10 × Desperation`
 
 Scores are persisted to `IdeaScore` via upsert and regenerated on demand. Only the idea submitter can trigger evaluation (`POST /api/ideas/[id]/score`).
 
@@ -81,6 +81,8 @@ Scores are persisted to `IdeaScore` via upsert and regenerated on demand. Only t
 2. `assessNetworkForPlan()` (`validation-network.ts`) — second Claude pass, maps team contacts to specific steps, returns `NetworkReachOut[]`.
 
 **Re-evaluation** (`reeval.ts`) — `reEvaluateIdea()` — calls `claude-sonnet-4-6` with the original evaluation + validation step notes (supporting/contradicting evidence + data sources). Returns `AIScoreResult` stored in `IdeaScore.reevalScore`. Requires ≥50% of steps completed and at least one step with notes.
+
+**Pivot engine** (`pivot.ts`) — `generatePivotPlan()` — on-demand Claude call using tool_use. Takes idea + `IdeaScore` (desperation context) + team contacts; returns `PivotPlan` (2-3 `PivotSuggestion[]` with `pivotType`, JTBD target, desperation rationale, validation shortcut, network leverage). Stored in `IdeaScore.pivotPlan`. Triggered by user button, not automatic.
 
 ### API Routes (Next.js 16)
 
@@ -93,6 +95,7 @@ Key routes:
 - `GET/POST /api/ideas/[id]/validation-plan` — fetch/generate AI validation plan (any workspace member; requires existing score)
 - `PATCH /api/ideas/[id]/validation-plan` — update a validation step's `completed`, `supportingNotes`, `contradictingNotes`, `dataSources` fields (body: `{ stepOrder, completed?, supportingNotes?, contradictingNotes?, dataSources? }`)
 - `POST /api/ideas/[id]/reeval` — trigger re-evaluation using validation evidence (any workspace member; requires ≥50% steps completed + at least one step with notes)
+- `POST /api/ideas/[id]/pivot` — trigger on-demand pivot analysis (any workspace member; requires existing score)
 - `PUT /api/ideas/[id]` — update idea
 - `DELETE /api/ideas/[id]` — delete idea
 - `PATCH /api/ideas/[id]/visibility` — toggle visibility
@@ -113,17 +116,20 @@ Key routes:
 
 - `src/lib/constants/skills.ts` — `SKILLS_TAXONOMY` with three categories and a `SkillKey` union type. Skills are stored as `string[]` in DB; `SkillKey` is enforced only at input boundaries.
 - `src/lib/constants/industries.ts` — exports `INDUSTRY_IDS` (string array of slugs) and `IndustryId` type. Labels are **not** hardcoded here — they come from the `Industry` DB table via `GET /api/industries`. All UI dropdowns fetch from that route.
-- `src/lib/types/idea.ts` — `IdeaData` with `industry: { id, label }` (relation object, not string).
+- `src/lib/types/idea.ts` — `IdeaData` with `industry: { id, label }` (relation object, not string). `targetCustomer` is `string | null | undefined` (legacy); new ideas expose `targetCustomerWho`, `targetCustomerWorkaround`, `targetCustomerCostOfInaction` (all optional/nullable).
 - `src/lib/types/profile.ts` — `MemberWithProfile`, `NetworkEntryData` (with `industry: { id, label }`), `ContactData`.
 - `src/lib/types/import.ts` — `CategorizedGroup` (uses `industryId`), `StagedContact`, `ImportSessionData` (v2 envelope), `parseSessionData()` (handles legacy bare arrays).
 - `src/lib/types/validation.ts` — `StoredValidationPlan`, `ValidationPlanCore` (= `Omit<StoredValidationPlan, "networkReachOuts">`), `ValidationStep` (with optional `completed`, `supportingNotes`, `contradictingNotes`, `dataSources`), `NetworkReachOut` (with optional `forStep`), `ValidationPlanResponse`.
-- `src/lib/types/idea.ts` — `IdeaData.score` now includes `reevalScore?: AIScoreResult | null` and `reevalAt?: Date | null`.
+- `src/lib/types/idea.ts` — `IdeaData.score` now includes `desperationScore`, `reevalScore?: AIScoreResult | null`, `reevalAt?: Date | null`, `pivotPlan?: PivotPlan | null`, `pivotAt?: Date | null`.
+- `src/lib/types/pivot.ts` — `PivotType` (`"narrow-who" | "adjacent-who" | "change-how"`), `PivotSuggestion`, `PivotPlan`.
+- `src/lib/types/scoring.ts` — `AIScoreResult` includes `desperationScore` and `reasoning.desperation: { desperationSignals, segmentNarrowness, notes }`.
 - `src/lib/contacts/domains.ts` — `PERSONAL_DOMAINS` set, `extractDomain`, `domainToCompanyName` utilities.
 - `src/lib/contacts/classify.ts` — `classifyCompanyDomains` (domain→industryId via cache+Haiku), `classifyContactGroups` (→`CategorizedGroup[]`), `classifyContactsPerRow` (→per-row `string[]`). All use `claude-haiku-4-5-20251001`.
 - `src/lib/scoring/validation.ts` — `generateValidationPlan()` — orchestrator: calls `generateValidationSteps` then `assessNetworkForPlan`, returns `StoredValidationPlan`.
 - `src/lib/scoring/validation-steps.ts` — `generateValidationSteps()` — first Claude pass, returns `ValidationPlanCore`.
 - `src/lib/scoring/validation-network.ts` — `assessNetworkForPlan()` — second Claude pass, maps contacts to steps, returns `NetworkReachOut[]`.
 - `src/lib/scoring/reeval.ts` — `reEvaluateIdea()` — re-scores idea using validation evidence, returns `AIScoreResult`.
+- `src/lib/scoring/pivot.ts` — `generatePivotPlan()` — on-demand pivot analysis, returns `PivotPlan`.
 
 ### UI Components
 
