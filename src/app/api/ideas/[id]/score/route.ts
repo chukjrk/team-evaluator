@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { computeFullScore } from "@/lib/scoring";
 import type { MemberWithProfile } from "@/lib/types/profile";
@@ -98,7 +99,7 @@ export async function POST(
       aiReasoning: scoreResult.aiReasoning as object,
       generatedAt: new Date(),
       // Clear stale pivot when re-scoring
-      pivotPlan: { set: null },
+      pivotPlan: Prisma.DbNull,
       pivotAt: null,
     },
   });
