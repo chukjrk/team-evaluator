@@ -72,7 +72,7 @@ Located in `src/lib/scoring/`. `computeFullScore` orchestrates:
 
 3. **Claude AI** (`claude.ts`) — calls `claude-sonnet-4-6` via `client.messages.create` with `cache_control: { type: "ephemeral" }` blocks. Team context is cached (ephemeral, 5-min TTL); the idea payload is uncached. Returns `ideaQualityScore`, `teamIdeaFitScore`, `desperationScore`, `timeToFirstCustomer`, `narrative`, and detailed `reasoning` (including `reasoning.desperation` with `desperationSignals` and `segmentNarrowness` sub-scores 0-10).
 
-Composite formula: `0.225 × TeamSkill + 0.175 × Network + 0.275 × IdeaQuality + 0.225 × TeamIdeaFit + 0.10 × Desperation`
+Composite formula: `0.15 × TeamSkill + 0.25 × Network + 0.30 × IdeaQuality + 0.25 × TeamIdeaFit + 0.05 × Desperation`
 
 Scores are persisted to `IdeaScore` via upsert and regenerated on demand. Only the idea submitter can trigger evaluation (`POST /api/ideas/[id]/score`).
 
