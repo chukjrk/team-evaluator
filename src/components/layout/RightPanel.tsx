@@ -97,6 +97,7 @@ export function RightPanel({
       )}
 
       <IdeaForm
+        key={idea?.id}
         open={editOpen}
         onOpenChange={setEditOpen}
         existing={idea}
