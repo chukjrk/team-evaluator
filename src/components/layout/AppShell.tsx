@@ -24,7 +24,15 @@ interface AppShellProps {
 export function AppShell({ currentMemberId }: AppShellProps) {
   const [selectedIdeaId, setSelectedIdeaId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<MobileTab>("ideas");
-  const { ideas, mutate } = useIdeas();
+  const [evaluatingIds, setEvaluatingIds] = useState<Set<string>>(new Set());
+  const { ideas, mutate } = useIdeas(evaluatingIds.size > 0 ? 2_000 : 15_000);
+
+  function handleEvaluationStart(ideaId: string) {
+    setEvaluatingIds((prev) => new Set(prev).add(ideaId));
+  }
+  function handleEvaluationEnd(ideaId: string) {
+    setEvaluatingIds((prev) => { const s = new Set(prev); s.delete(ideaId); return s; });
+  }
 
   const [leftWidth, setLeftWidth] = useState(360);
   const [rightWidth, setRightWidth] = useState(DEFAULT_RIGHT);
@@ -165,6 +173,7 @@ export function AppShell({ currentMemberId }: AppShellProps) {
             selectedIdeaId={selectedIdeaId}
             onSelectIdea={setSelectedIdeaId}
             onIdeaUpdate={handleCenterUpdate}
+            evaluatingIds={evaluatingIds}
           />
         </div>
 
@@ -182,8 +191,12 @@ export function AppShell({ currentMemberId }: AppShellProps) {
         {/* Right panel */}
         <div style={{ width: rightWidth, minWidth: rightWidth, maxWidth: rightWidth }} className="flex-shrink-0">
           <RightPanel
+            key={selectedIdea?.id}
             idea={selectedIdea}
             currentMemberId={currentMemberId}
+            isEvaluating={evaluatingIds.has(selectedIdea?.id ?? "")}
+            onEvaluationStart={handleEvaluationStart}
+            onEvaluationEnd={handleEvaluationEnd}
             onIdeaUpdated={handleIdeaUpdate}
             onIdeaDeleted={handleIdeaDelete}
           />
@@ -200,12 +213,17 @@ export function AppShell({ currentMemberId }: AppShellProps) {
               selectedIdeaId={selectedIdeaId}
               onSelectIdea={handleSelectIdea}
               onIdeaUpdate={handleCenterUpdate}
+              evaluatingIds={evaluatingIds}
             />
           )}
           {activeTab === "detail" && (
             <RightPanel
+              key={selectedIdea?.id}
               idea={selectedIdea}
               currentMemberId={currentMemberId}
+              isEvaluating={evaluatingIds.has(selectedIdea?.id ?? "")}
+              onEvaluationStart={handleEvaluationStart}
+              onEvaluationEnd={handleEvaluationEnd}
               onIdeaUpdated={handleIdeaUpdate}
               onIdeaDeleted={handleIdeaDelete}
             />

@@ -16,12 +16,14 @@ interface CenterPanelProps {
   selectedIdeaId: string | null;
   onSelectIdea: (id: string) => void;
   onIdeaUpdate: (idea: IdeaData) => void;
+  evaluatingIds?: Set<string>;
 }
 
 export function CenterPanel({
   selectedIdeaId,
   onSelectIdea,
   onIdeaUpdate,
+  evaluatingIds,
 }: CenterPanelProps) {
   const { ideas, mutate, isLoading } = useIdeas();
   const [newIdeaOpen, setNewIdeaOpen] = useState(false);
@@ -82,6 +84,7 @@ export function CenterPanel({
                 key={idea.id}
                 idea={idea}
                 isSelected={idea.id === selectedIdeaId}
+                isEvaluating={evaluatingIds?.has(idea.id) ?? false}
                 onSelect={() => onSelectIdea(idea.id)}
               />
             ))
