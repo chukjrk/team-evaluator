@@ -90,7 +90,7 @@ export function ValidationPlanTab({ idea }: ValidationPlanTabProps) {
           </div>
         ) : state.status === "has-plan" ? (
           <ValidationPlanTree
-            key={state.plan.generatedAt}
+            key={`${idea.id}-${state.plan.generatedAt}`}
             plan={state.plan.content}
             generatedAt={state.plan.generatedAt}
             triggeredByName={state.plan.triggeredBy.name}

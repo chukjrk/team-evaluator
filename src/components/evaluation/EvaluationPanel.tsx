@@ -24,6 +24,9 @@ import type { PivotPlan } from "@/lib/types/pivot";
 interface EvaluationPanelProps {
   idea: IdeaData;
   currentMemberId: string;
+  isEvaluating: boolean;
+  onEvaluationStart: (ideaId: string) => void;
+  onEvaluationEnd: (ideaId: string) => void;
   onIdeaUpdated: (idea: IdeaData) => void;
   onIdeaDeleted: (ideaId: string) => void;
   onOpenEdit: () => void;
@@ -32,16 +35,18 @@ interface EvaluationPanelProps {
 export function EvaluationPanel({
   idea,
   currentMemberId,
+  isEvaluating,
+  onEvaluationStart,
+  onEvaluationEnd,
   onIdeaUpdated,
   onIdeaDeleted,
   onOpenEdit,
 }: EvaluationPanelProps) {
-  const [evaluating, setEvaluating] = useState(false);
   const [generatingPivot, setGeneratingPivot] = useState(false);
   const isOwner = idea.submitterId === currentMemberId;
 
   async function handleEvaluate() {
-    setEvaluating(true);
+    onEvaluationStart(idea.id);
     try {
       const res = await fetch(`/api/ideas/${idea.id}/score`, {
         method: "POST",
@@ -56,7 +61,7 @@ export function EvaluationPanel({
     } catch {
       toast.error("Something went wrong during evaluation");
     } finally {
-      setEvaluating(false);
+      onEvaluationEnd(idea.id);
     }
   }
 
@@ -218,7 +223,7 @@ export function EvaluationPanel({
 
       {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
-        {evaluating ? (
+        {isEvaluating ? (
           <ScoreLoadingState />
         ) : idea.score ? (
           <>
@@ -390,11 +395,11 @@ export function EvaluationPanel({
           size="sm"
           variant={idea.score ? "outline" : "default"}
           onClick={handleEvaluate}
-          disabled={evaluating}
+          disabled={isEvaluating}
           className="ml-auto"
         >
-          <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${evaluating ? "animate-spin" : ""}`} />
-          {evaluating ? "Evaluating..." : idea.score ? "Re-evaluate" : "Evaluate"}
+          <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${isEvaluating ? "animate-spin" : ""}`} />
+          {isEvaluating ? "Evaluating..." : idea.score ? "Re-evaluate" : "Evaluate"}
         </Button>
       </div>
     </div>

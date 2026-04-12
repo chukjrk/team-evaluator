@@ -7,6 +7,7 @@ import type { IdeaData } from "@/lib/types/idea";
 interface IdeaCardProps {
   idea: IdeaData;
   isSelected: boolean;
+  isEvaluating?: boolean;
   onSelect: () => void;
 }
 
@@ -16,7 +17,7 @@ function scoreCircleBorder(score: number) {
   return "#f43f5e"; // rose-500
 }
 
-export function IdeaCard({ idea, isSelected, onSelect }: IdeaCardProps) {
+export function IdeaCard({ idea, isSelected, isEvaluating = false, onSelect }: IdeaCardProps) {
   const score = idea.score?.compositeScore;
   const hasScore = score !== undefined && score !== null;
 
@@ -60,7 +61,11 @@ export function IdeaCard({ idea, isSelected, onSelect }: IdeaCardProps) {
 
         {/* Score circle */}
         <div className="shrink-0 flex flex-col items-center">
-          {hasScore ? (
+          {isEvaluating ? (
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-dashed border-violet-300 animate-pulse">
+              <span className="text-[10px] text-violet-400">AI</span>
+            </div>
+          ) : hasScore ? (
             <div
               className="relative flex h-10 w-10 items-center justify-center rounded-full"
               style={{

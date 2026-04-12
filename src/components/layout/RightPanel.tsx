@@ -14,6 +14,9 @@ type RightTab = "evaluation" | "validation" | "notes";
 interface RightPanelProps {
   idea: IdeaData | null;
   currentMemberId: string;
+  isEvaluating: boolean;
+  onEvaluationStart: (ideaId: string) => void;
+  onEvaluationEnd: (ideaId: string) => void;
   onIdeaUpdated: (idea: IdeaData) => void;
   onIdeaDeleted: (ideaId: string) => void;
 }
@@ -22,6 +25,9 @@ interface RightPanelProps {
 export function RightPanel({
   idea,
   currentMemberId,
+  isEvaluating,
+  onEvaluationStart,
+  onEvaluationEnd,
   onIdeaUpdated,
   onIdeaDeleted,
 }: RightPanelProps) {
@@ -79,6 +85,9 @@ export function RightPanel({
           <EvaluationPanel
             idea={idea}
             currentMemberId={currentMemberId}
+            isEvaluating={isEvaluating}
+            onEvaluationStart={onEvaluationStart}
+            onEvaluationEnd={onEvaluationEnd}
             onIdeaUpdated={onIdeaUpdated}
             onIdeaDeleted={onIdeaDeleted}
             onOpenEdit={() => setEditOpen(true)}
@@ -97,6 +106,7 @@ export function RightPanel({
       )}
 
       <IdeaForm
+        key={idea?.id}
         open={editOpen}
         onOpenChange={setEditOpen}
         existing={idea}

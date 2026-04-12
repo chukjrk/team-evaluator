@@ -194,7 +194,7 @@ export function ValidationNotesTab({
         <div className="px-4 py-4 space-y-3">
           {steps.map((step) => (
             <StepNoteCard
-              key={step.order}
+              key={`${idea.id}-${step.order}`}
               step={step}
               ideaId={idea.id}
               onSaved={(updated) => {

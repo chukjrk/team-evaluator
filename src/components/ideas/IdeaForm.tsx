@@ -75,7 +75,7 @@ export function IdeaForm({ open, onOpenChange, existing, onSaved }: IdeaFormProp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{existing ? "Edit Idea" : "Submit a New Idea"}</DialogTitle>
         </DialogHeader>
@@ -100,7 +100,7 @@ export function IdeaForm({ open, onOpenChange, existing, onSaved }: IdeaFormProp
               value={problem}
               onChange={(e) => setProblem(e.target.value)}
               placeholder="What problem does this solve? Why does it exist now?"
-              rows={3}
+              rows={2}
               required
               minLength={10}
               maxLength={2000}
