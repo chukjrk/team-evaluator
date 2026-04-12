@@ -9,7 +9,7 @@ const SYSTEM_PROMPT = `You are a startup evaluator. The founding team has comple
 
 You will receive:
 1. TEAM CONTEXT — the founding team's skills and background
-2. ORIGINAL EVALUATION — the initial AI evaluation scores and reasoning
+2. ORIGINAL EVALUATION — the initial AI evaluation scores and reasoning (including the original desperation score)
 3. VALIDATION EVIDENCE — structured notes from completed validation steps, including supporting and contradicting evidence
 
 Scoring rules:
@@ -21,6 +21,8 @@ Scoring rules:
 - Your narrative must name what the validation revealed — positive or negative — in the first sentence
 - Be honest: teams that did thorough validation with mixed results are more credible than teams with only positive notes
 
+For desperationScore: re-evaluate based on whether validation evidence revealed real behavioral pull (customers already paying for workarounds, urgency signals from interviews, self-built solutions). Score high (75-100) only if evidence confirms desperate customers. Lower the score if validation found lukewarm interest or speculative demand.
+
 Use the same skill taxonomy and output schema as the original evaluation.`;
 
 const REEVAL_TOOL: Anthropic.Tool = {
@@ -31,6 +33,7 @@ const REEVAL_TOOL: Anthropic.Tool = {
     properties: {
       ideaQualityScore: { type: "integer", description: "0-100" },
       teamIdeaFitScore: { type: "integer", description: "0-100" },
+      desperationScore: { type: "integer", description: "0-100 — Re-evaluated based on validation evidence of customer desperation. Score high only if evidence confirms behavioral pull (paying for workarounds, urgency in interviews). Lower if demand proved speculative." },
       overallViabilityScore: { type: "integer", description: "0-100" },
       recommendation: {
         type: "string",
@@ -56,6 +59,15 @@ const REEVAL_TOOL: Anthropic.Tool = {
               notes: { type: "string" },
             },
             required: ["problemClarity", "marketOpportunity", "competitiveLandscape", "defensibility", "revenueModel", "notes"],
+          },
+          desperation: {
+            type: "object",
+            properties: {
+              desperationSignals: { type: "integer", description: "0-10 — Concrete behavioral evidence from validation that customers are desperate. Update based on interview/experiment results." },
+              segmentNarrowness: { type: "integer", description: "0-10 — Precision of the validated target segment. Update if validation clarified or narrowed the who." },
+              notes: { type: "string", description: "The most important desperation signal (or absence of signal) revealed by validation evidence." },
+            },
+            required: ["desperationSignals", "segmentNarrowness", "notes"],
           },
           teamFit: {
             type: "object",
@@ -93,12 +105,13 @@ const REEVAL_TOOL: Anthropic.Tool = {
           missingSkills: { type: "array", items: { type: "string" } },
           competitorFlags: { type: "array", items: { type: "string" } },
         },
-        required: ["ideaQuality", "teamFit", "timeEstimate", "marketSizing", "requiredSkills", "missingSkills", "competitorFlags"],
+        required: ["ideaQuality", "desperation", "teamFit", "timeEstimate", "marketSizing", "requiredSkills", "missingSkills", "competitorFlags"],
       },
     },
     required: [
       "ideaQualityScore",
       "teamIdeaFitScore",
+      "desperationScore",
       "overallViabilityScore",
       "recommendation",
       "timeToFirstCustomer",
@@ -152,11 +165,13 @@ function buildReevalPayload(
         compositeScore: originalScore.compositeScore,
         ideaQualityScore: originalScore.ideaQualityScore,
         teamIdeaFitScore: originalScore.teamIdeaFitScore,
+        desperationScore: originalScore.desperationScore,
         timeToFirstCustomer: originalScore.timeToFirstCustomer,
         narrative: originalScore.aiNarrative,
         recommendation: reasoning?.recommendation ?? null,
         reasoning: {
           ideaQuality: reasoning?.ideaQuality ?? null,
+          desperation: reasoning?.desperation ?? null,
           teamFit: reasoning?.teamFit ?? null,
           marketSizing: reasoning?.marketSizing ?? null,
           competitorFlags: reasoning?.competitorFlags ?? null,
@@ -238,12 +253,13 @@ export async function reEvaluateIdea(
 
   const result = toolUseBlock.input as AIScoreResult;
 
-  if (typeof result.ideaQualityScore !== "number" || typeof result.teamIdeaFitScore !== "number") {
+  if (typeof result.ideaQualityScore !== "number" || typeof result.teamIdeaFitScore !== "number" || typeof result.desperationScore !== "number") {
     throw new Error("Re-evaluation tool response missing required score fields");
   }
 
   result.ideaQualityScore = clamp(result.ideaQualityScore, 0, 100);
   result.teamIdeaFitScore = clamp(result.teamIdeaFitScore, 0, 100);
+  result.desperationScore = clamp(result.desperationScore, 0, 100);
   if (typeof result.overallViabilityScore === "number") {
     result.overallViabilityScore = clamp(result.overallViabilityScore, 0, 100);
   }
