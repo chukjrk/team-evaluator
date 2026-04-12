@@ -7,11 +7,11 @@ import { callClaudeForScores } from "./claude";
 import { clamp } from "@/lib/utils";
 
 const COMPOSITE_WEIGHTS = {
-  teamSkill:   0.225,
-  network:     0.175,
-  ideaQuality: 0.275,
-  teamIdeaFit: 0.225,
-  desperation: 0.10,
+  teamSkill:   0.15,
+  network:     0.25,
+  ideaQuality: 0.30,
+  teamIdeaFit: 0.25,
+  desperation: 0.05,
 } as const;
 
 export async function computeFullScore(
