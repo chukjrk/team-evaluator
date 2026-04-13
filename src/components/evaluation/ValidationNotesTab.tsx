@@ -80,7 +80,7 @@ function StepNoteCard({
             onBlur={(e) => saveField("supportingNotes", e.target.value)}
             placeholder="What confirmed your assumption? Interviews, signals, data, positive responses..."
             rows={3}
-            className="w-full resize-none rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-2 text-xs text-zinc-700 placeholder-zinc-400 focus:outline-none focus:border-zinc-400"
+            className="w-full resize-y rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-2 text-xs text-zinc-700 placeholder-zinc-400 focus:outline-none focus:border-zinc-400"
           />
         </div>
 
@@ -94,7 +94,7 @@ function StepNoteCard({
             onBlur={(e) => saveField("contradictingNotes", e.target.value)}
             placeholder="What challenged or disproved it? Objections, failed tests, unexpected pushback..."
             rows={3}
-            className="w-full resize-none rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-2 text-xs text-zinc-700 placeholder-zinc-400 focus:outline-none focus:border-zinc-400"
+            className="w-full resize-y rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-2 text-xs text-zinc-700 placeholder-zinc-400 focus:outline-none focus:border-zinc-400"
           />
         </div>
 
