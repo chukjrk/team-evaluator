@@ -67,12 +67,12 @@ export function AIInsightCard({ narrative, reasoning }: AIInsightCardProps) {
 
       {/* Narrative — always visible */}
       <div className="px-4 pb-4">
-        <p className="text-xs leading-relaxed text-zinc-500">{narrative}</p>
+        <p className="text-xs leading-relaxed text-zinc-500 select-text">{narrative}</p>
       </div>
 
       {/* Expanded details */}
       {expanded && (
-        <div className="border-t border-zinc-100 px-4 py-4 space-y-6">
+        <div className="border-t border-zinc-100 px-4 py-4 space-y-6 select-text">
 
           {/* Idea Quality */}
           <div>
