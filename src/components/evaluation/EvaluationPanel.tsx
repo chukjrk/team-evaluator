@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { RefreshCw, Pencil, Trash2, Globe, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,15 @@ export function EvaluationPanel({
   onOpenEdit,
 }: EvaluationPanelProps) {
   const [generatingPivot, setGeneratingPivot] = useState(false);
+  const [headerCollapsed, setHeaderCollapsed] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const isOwner = idea.submitterId === currentMemberId;
+
+  function handleScroll() {
+    if (scrollRef.current) {
+      setHeaderCollapsed(scrollRef.current.scrollTop > 20);
+    }
+  }
 
   async function handleEvaluate() {
     onEvaluationStart(idea.id);
@@ -148,21 +156,23 @@ export function EvaluationPanel({
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="shrink-0 border-b border-zinc-200 px-5 py-4">
-        <div className="flex items-start justify-between gap-2">
+      <div className={`shrink-0 border-b border-zinc-200 px-5 transition-all duration-200 ${headerCollapsed ? "py-2.5" : "py-4"}`}>
+        <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
-            <h2 className="text-base font-semibold text-zinc-900 leading-tight">
+            <h2 className="text-base font-semibold text-zinc-900 leading-tight truncate">
               {idea.title}
             </h2>
-            <div className="mt-1 flex items-center gap-2">
-              <span className="text-xs text-zinc-400">{idea.submitter.name}</span>
-              <span
-                className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
-                style={{ background: "#fef3c7", border: "1px solid #f59e0b", color: "#92400e" }}
-              >
-                {idea.industry.label}
-              </span>
-            </div>
+            {!headerCollapsed && (
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-xs text-zinc-400">{idea.submitter.name}</span>
+                <span
+                  className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+                  style={{ background: "#fef3c7", border: "1px solid #f59e0b", color: "#92400e" }}
+                >
+                  {idea.industry.label}
+                </span>
+              </div>
+            )}
           </div>
           {isOwner && (
             <div className="flex items-center gap-1 shrink-0">
@@ -181,48 +191,50 @@ export function EvaluationPanel({
           )}
         </div>
 
-        {/* Idea details */}
-        <div className="mt-3 space-y-2 text-xs text-zinc-500">
-          <div>
-            <span className="font-medium text-zinc-600">Problem: </span>
-            {idea.problemStatement}
-          </div>
-          {idea.targetCustomerWho ? (
-            <div className="space-y-1">
-              <div>
-                <span className="font-medium text-zinc-600">Who: </span>
-                {idea.targetCustomerWho}
+        {/* Idea details — hidden when collapsed */}
+        {!headerCollapsed && (
+          <div className="mt-3 space-y-2 text-xs text-zinc-500">
+            <div>
+              <span className="font-medium text-zinc-600">Problem: </span>
+              {idea.problemStatement}
+            </div>
+            {idea.targetCustomerWho ? (
+              <div className="space-y-1">
+                <div>
+                  <span className="font-medium text-zinc-600">Who: </span>
+                  {idea.targetCustomerWho}
+                </div>
+                {idea.targetCustomerWorkaround && (
+                  <div>
+                    <span className="font-medium text-zinc-600">Today: </span>
+                    {idea.targetCustomerWorkaround}
+                  </div>
+                )}
+                {idea.targetCustomerCostOfInaction && (
+                  <div>
+                    <span className="font-medium text-zinc-600">Cost of inaction: </span>
+                    {idea.targetCustomerCostOfInaction}
+                  </div>
+                )}
               </div>
-              {idea.targetCustomerWorkaround && (
-                <div>
-                  <span className="font-medium text-zinc-600">Today: </span>
-                  {idea.targetCustomerWorkaround}
-                </div>
-              )}
-              {idea.targetCustomerCostOfInaction && (
-                <div>
-                  <span className="font-medium text-zinc-600">Cost of inaction: </span>
-                  {idea.targetCustomerCostOfInaction}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div>
-              <span className="font-medium text-zinc-600">Customer: </span>
-              {idea.targetCustomer}
-            </div>
-          )}
-          {idea.notes && (
-            <div>
-              <span className="font-medium text-zinc-600">Notes: </span>
-              {idea.notes}
-            </div>
-          )}
-        </div>
+            ) : (
+              <div>
+                <span className="font-medium text-zinc-600">Customer: </span>
+                {idea.targetCustomer}
+              </div>
+            )}
+            {idea.notes && (
+              <div>
+                <span className="font-medium text-zinc-600">Notes: </span>
+                {idea.notes}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+      <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
         {isEvaluating ? (
           <ScoreLoadingState />
         ) : idea.score ? (
