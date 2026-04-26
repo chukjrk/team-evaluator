@@ -98,9 +98,11 @@ export async function POST(
       aiNarrative: scoreResult.aiNarrative,
       aiReasoning: scoreResult.aiReasoning as object,
       generatedAt: new Date(),
-      // Clear stale pivot when re-scoring
+      // Clear stale pivot and market research when re-scoring
       pivotPlan: Prisma.DbNull,
       pivotAt: null,
+      marketResearch: Prisma.DbNull,
+      marketResearchAt: null,
     },
   });
 
