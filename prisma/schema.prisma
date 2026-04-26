@@ -216,6 +216,8 @@ model IdeaScore {
   reevalAt            DateTime? // when re-evaluation was last run
   pivotPlan           Json?     // PivotPlan shape — set on demand by user
   pivotAt             DateTime? // when pivot analysis was last generated
+  marketResearch      Json?     // MarketResearchResult shape — set on demand by user
+  marketResearchAt    DateTime? // when market research was last generated
 
   ideaId String @unique
   idea   Idea   @relation(fields: [ideaId], references: [id], onDelete: Cascade)
