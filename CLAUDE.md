@@ -33,7 +33,7 @@ In `.env.local`:
 
 ### Auth & Routing
 
-- **Clerk** handles auth. `src/proxy.ts` (Next.js 16 middleware) protects all routes except `/sign-in`, `/sign-up`, `/join`, and `/api/webhooks`.
+- **Clerk** handles auth. `src/proxy.ts` (Next.js 16 middleware) protects all routes except `/sign-in`, `/sign-up`, `/join`, `/api/webhooks`, and `/networkos`.
 - User flow: sign up → `/onboarding` (create workspace) → `/profile` (fill cofounder data) → `/dashboard`.
 - Invite flow: existing member generates a token-based invite URL (`/join?token=...`). The `inviteToken` field on `Workspace` is a CUID.
 - Clerk webhook at `/api/webhooks/clerk` handles `user.deleted` by cascading-deleting `WorkspaceMember` records.
