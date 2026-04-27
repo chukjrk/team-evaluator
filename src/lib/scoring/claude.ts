@@ -3,7 +3,7 @@ import type { Idea } from "@prisma/client";
 import type { MemberWithProfile } from "@/lib/types/profile";
 import type { AIScoreResult } from "@/lib/types/scoring";
 import { clamp } from "@/lib/utils";
-import { runDesperationSearches, buildMarketSignalsBlock } from "@/lib/tavily";
+import { runDesperationSearches, buildMarketSignalsBlock, type TavilySearchSet } from "@/lib/tavily";
 
 // ---------------------------------------------------------------------------
 // System prompt — static across all evaluations, marked for caching.
@@ -189,10 +189,10 @@ function validateAndNormalize(raw: unknown): AIScoreResult {
 export async function callClaudeForScores(
   idea: Idea,
   members: MemberWithProfile[],
-): Promise<AIScoreResult> {
+): Promise<{ scores: AIScoreResult; tavilySignals: TavilySearchSet[] }> {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  const [marketSignalSets] = await Promise.all([runDesperationSearches(idea)]);
+  const marketSignalSets = await runDesperationSearches(idea);
   const marketSignalsBlock = buildMarketSignalsBlock(marketSignalSets);
 
   const userContent: Anthropic.MessageParam["content"] = [
@@ -238,5 +238,5 @@ export async function callClaudeForScores(
     throw new Error(`Claude returned non-JSON response: ${raw.slice(0, 300)}`);
   }
 
-  return validateAndNormalize(parsed);
+  return { scores: validateAndNormalize(parsed), tavilySignals: marketSignalSets };
 }
