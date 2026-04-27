@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Sparkles, AlertTriangle, TrendingUp, Users, Swords } from "lucide-react";
+import { ChevronDown, ChevronUp, Sparkles, AlertTriangle, TrendingUp, Users, Swords, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { StoredReasoning } from "@/lib/types/scoring";
+import type { StoredReasoning, TavilySignalSet } from "@/lib/types/scoring";
 
 interface AIInsightCardProps {
   narrative: string;
@@ -31,6 +31,57 @@ function SubScoreBar({ label, val, color }: { label: string; val: number; color:
         <div className="h-full rounded-full transition-all" style={{ width: `${val * 10}%`, background: color }} />
       </div>
       <span className="text-[11px] text-zinc-500 w-8 text-right tabular-nums">{val}/10</span>
+    </div>
+  );
+}
+
+function TavilySignalsBlock({ signals }: { signals: TavilySignalSet[] }) {
+  const [open, setOpen] = useState(false);
+  const hasResults = signals.some((s) => s.results.length > 0);
+  if (!hasResults) return null;
+
+  return (
+    <div className="mt-3 rounded-lg border border-zinc-100 bg-zinc-50 overflow-hidden">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-zinc-100 transition-colors cursor-pointer"
+      >
+        <div className="flex items-center gap-1.5">
+          <Globe className="h-3 w-3 text-zinc-400 shrink-0" />
+          <span className="text-[11px] font-medium text-zinc-500">Web signals used to score desperation</span>
+        </div>
+        {open ? <ChevronUp className="h-3 w-3 text-zinc-400" /> : <ChevronDown className="h-3 w-3 text-zinc-400" />}
+      </button>
+
+      {open && (
+        <div className="px-3 pb-3 space-y-3 border-t border-zinc-100">
+          {signals.map((set, si) => (
+            set.results.length > 0 && (
+              <div key={si} className="pt-2">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
+                  {set.topic === "customer-pain" ? "Customer Pain" : "Existing Solutions"} · &ldquo;{set.query}&rdquo;
+                </p>
+                <div className="space-y-2">
+                  {set.results.map((r, ri) => (
+                    <div key={ri} className="space-y-0.5">
+                      <p className="text-[11px] font-medium text-zinc-700 leading-snug">{r.title}</p>
+                      <p className="text-[10px] text-zinc-500 leading-snug">{r.snippet}</p>
+                      <a
+                        href={r.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] text-violet-500 hover:underline truncate block"
+                      >
+                        {r.url}
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -107,6 +158,9 @@ export function AIInsightCard({ narrative, reasoning }: AIInsightCardProps) {
               </div>
               {reasoning.desperation.notes && (
                 <p className="text-xs text-zinc-500 italic mt-2">{reasoning.desperation.notes}</p>
+              )}
+              {reasoning.tavilySignals && reasoning.tavilySignals.length > 0 && (
+                <TavilySignalsBlock signals={reasoning.tavilySignals} />
               )}
             </div>
           )}

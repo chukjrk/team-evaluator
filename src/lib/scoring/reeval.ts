@@ -4,6 +4,7 @@ import type { MemberWithProfile } from "@/lib/types/profile";
 import type { ValidationStep } from "@/lib/types/validation";
 import type { AIScoreResult } from "@/lib/types/scoring";
 import { clamp } from "@/lib/utils";
+import { runDesperationSearches, buildMarketSignalsBlock } from "@/lib/tavily";
 
 const SYSTEM_PROMPT = `You are a startup evaluator. The founding team has completed validation work on their idea. Your job is to re-evaluate the idea based on real-world evidence from their validation activities.
 
@@ -200,6 +201,25 @@ export async function reEvaluateIdea(
     timeout: 120_000,
   });
 
+  const freshSignalSets = await runDesperationSearches(idea);
+  const freshSignalsBlock = buildMarketSignalsBlock(freshSignalSets.slice(0, 1));
+
+  const userContent: Anthropic.MessageParam["content"] = [
+    {
+      type: "text",
+      text: `TEAM CONTEXT:\n\n${buildTeamContext(members)}`,
+      cache_control: { type: "ephemeral" },
+    },
+    {
+      type: "text",
+      text: `ORIGINAL EVALUATION AND VALIDATION EVIDENCE:\n\n${buildReevalPayload(idea, originalScore, completedSteps)}`,
+    },
+  ];
+
+  if (freshSignalsBlock) {
+    userContent.push({ type: "text", text: freshSignalsBlock });
+  }
+
   let message;
   try {
     message = await client.messages.create({
@@ -214,22 +234,7 @@ export async function reEvaluateIdea(
           cache_control: { type: "ephemeral" },
         },
       ],
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `TEAM CONTEXT:\n\n${buildTeamContext(members)}`,
-              cache_control: { type: "ephemeral" },
-            },
-            {
-              type: "text",
-              text: `ORIGINAL EVALUATION AND VALIDATION EVIDENCE:\n\n${buildReevalPayload(idea, originalScore, completedSteps)}`,
-            },
-          ],
-        },
-      ],
+      messages: [{ role: "user", content: userContent }],
     });
   } catch (apiErr) {
     console.error("[reeval] Claude API error:", apiErr);

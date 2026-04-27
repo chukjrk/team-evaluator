@@ -53,9 +53,23 @@ export interface AIScoreResult {
  * `overallViabilityScore` alongside the reasoning object so they persist
  * without requiring a DB migration.
  */
+export interface TavilySignalSource {
+  title: string;
+  url: string;
+  snippet: string;
+  score: number;
+}
+
+export interface TavilySignalSet {
+  topic: string;
+  query: string;
+  results: TavilySignalSource[];
+}
+
 export type StoredReasoning = AIScoreResult["reasoning"] & {
   recommendation?: Recommendation;
   overallViabilityScore?: number;
+  tavilySignals?: TavilySignalSet[];
 };
 
 export interface ScoreResult {

@@ -24,7 +24,7 @@ export async function computeFullScore(
   const networkScore = computeNetworkScoreHybrid(allContacts, allNetworkEntries, idea.industryId);
 
   // Claude call (slow — 5-15s)
-  const aiResult = await callClaudeForScores(idea, members);
+  const { scores: aiResult, tavilySignals } = await callClaudeForScores(idea, members);
 
   const compositeScore = clamp(
     COMPOSITE_WEIGHTS.teamSkill   * teamSkillScore +
@@ -45,12 +45,13 @@ export async function computeFullScore(
     compositeScore,
     timeToFirstCustomer: aiResult.timeToFirstCustomer,
     aiNarrative: aiResult.narrative,
-    // Embed top-level AI verdict fields into the reasoning JSON blob so they
-    // persist without requiring new DB columns.
+    // Embed top-level AI verdict fields and Tavily signals into the reasoning
+    // JSON blob so they persist without requiring new DB columns.
     aiReasoning: {
       ...aiResult.reasoning,
       recommendation: aiResult.recommendation,
       overallViabilityScore: aiResult.overallViabilityScore,
+      tavilySignals: tavilySignals.length > 0 ? tavilySignals : undefined,
     },
   };
 }

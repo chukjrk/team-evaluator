@@ -3,6 +3,7 @@ import type { Idea } from "@prisma/client";
 import type { MemberWithProfile } from "@/lib/types/profile";
 import type { AIScoreResult } from "@/lib/types/scoring";
 import { clamp } from "@/lib/utils";
+import { runDesperationSearches, buildMarketSignalsBlock, type TavilySearchSet } from "@/lib/tavily";
 
 // ---------------------------------------------------------------------------
 // System prompt — static across all evaluations, marked for caching.
@@ -188,8 +189,27 @@ function validateAndNormalize(raw: unknown): AIScoreResult {
 export async function callClaudeForScores(
   idea: Idea,
   members: MemberWithProfile[],
-): Promise<AIScoreResult> {
+): Promise<{ scores: AIScoreResult; tavilySignals: TavilySearchSet[] }> {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+  const marketSignalSets = await runDesperationSearches(idea);
+  const marketSignalsBlock = buildMarketSignalsBlock(marketSignalSets);
+
+  const userContent: Anthropic.MessageParam["content"] = [
+    {
+      type: "text",
+      text: `TEAM CONTEXT:\n\n${buildTeamContext(members)}`,
+      cache_control: { type: "ephemeral" },
+    },
+    {
+      type: "text",
+      text: `IDEA TO EVALUATE:\n\n${buildIdeaPayload(idea)}`,
+    },
+  ];
+
+  if (marketSignalsBlock) {
+    userContent.push({ type: "text", text: marketSignalsBlock });
+  }
 
   const message = await client.messages.create({
     model: "claude-sonnet-4-6",
@@ -201,25 +221,7 @@ export async function callClaudeForScores(
         cache_control: { type: "ephemeral" },
       },
     ],
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            // Team context — cached so subsequent evaluations in the same
-            // workspace reuse these tokens without paying full input cost.
-            text: `TEAM CONTEXT:\n\n${buildTeamContext(members)}`,
-            cache_control: { type: "ephemeral" },
-          },
-          {
-            type: "text",
-            // Idea — changes per request, never cached.
-            text: `IDEA TO EVALUATE:\n\n${buildIdeaPayload(idea)}`,
-          },
-        ],
-      },
-    ],
+    messages: [{ role: "user", content: userContent }],
   });
 
   let raw = (message.content[0] as Anthropic.TextBlock).text.trim();
@@ -236,5 +238,5 @@ export async function callClaudeForScores(
     throw new Error(`Claude returned non-JSON response: ${raw.slice(0, 300)}`);
   }
 
-  return validateAndNormalize(parsed);
+  return { scores: validateAndNormalize(parsed), tavilySignals: marketSignalSets };
 }
