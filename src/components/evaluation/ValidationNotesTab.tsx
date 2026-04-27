@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { RefreshCw, NotebookPen } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,8 @@ function StepNoteCard({
   const [supporting, setSupporting] = useState(step.supportingNotes ?? "");
   const [contradicting, setContradicting] = useState(step.contradictingNotes ?? "");
   const [sources, setSources] = useState(step.dataSources ?? "");
+  const [saved, setSaved] = useState(false);
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   async function saveField(field: "supportingNotes" | "contradictingNotes" | "dataSources", value: string) {
     const res = await fetch(`/api/ideas/${ideaId}/validation-plan`, {
@@ -40,6 +42,9 @@ function StepNoteCard({
         (s) => s.order === step.order
       );
       if (updated) onSaved(updated);
+      if (savedTimer.current) clearTimeout(savedTimer.current);
+      setSaved(true);
+      savedTimer.current = setTimeout(() => setSaved(false), 1500);
     }
   }
 
@@ -63,6 +68,11 @@ function StepNoteCard({
             {step.priority}
           </span>
         </div>
+        {saved && (
+          <span className="rounded-full border px-1.5 py-0.5 text-[10px] font-medium shrink-0 bg-green-50 text-green-700 border-green-200 transition-opacity duration-300">
+            Saved
+          </span>
+        )}
         {hasNotes && (
           <span className="shrink-0 h-1.5 w-1.5 rounded-full bg-amber-400 mt-1.5" title="Has notes" />
         )}
@@ -80,7 +90,7 @@ function StepNoteCard({
             onBlur={(e) => saveField("supportingNotes", e.target.value)}
             placeholder="What confirmed your assumption? Interviews, signals, data, positive responses..."
             rows={3}
-            className="w-full resize-none rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-2 text-xs text-zinc-700 placeholder-zinc-400 focus:outline-none focus:border-zinc-400"
+            className="w-full resize-y rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-2 text-xs text-zinc-700 placeholder-zinc-400 focus:outline-none focus:border-zinc-400"
           />
         </div>
 
@@ -94,7 +104,7 @@ function StepNoteCard({
             onBlur={(e) => saveField("contradictingNotes", e.target.value)}
             placeholder="What challenged or disproved it? Objections, failed tests, unexpected pushback..."
             rows={3}
-            className="w-full resize-none rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-2 text-xs text-zinc-700 placeholder-zinc-400 focus:outline-none focus:border-zinc-400"
+            className="w-full resize-y rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-2 text-xs text-zinc-700 placeholder-zinc-400 focus:outline-none focus:border-zinc-400"
           />
         </div>
 

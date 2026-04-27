@@ -30,7 +30,7 @@ export async function generatePivotPlan(
 ): Promise<PivotPlan> {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  const reasoning = score.aiReasoning as StoredReasoning;
+  const reasoning = score.aiReasoning as unknown as StoredReasoning;
 
   const contacts = members.flatMap((m) =>
     (m.profile?.contacts ?? []).map((c) => ({

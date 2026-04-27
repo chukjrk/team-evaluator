@@ -49,7 +49,7 @@ export function PivotSuggestionsCard({
           <div className="h-16 bg-zinc-100 rounded" />
         </div>
       ) : pivotPlan ? (
-        <div className="px-4 py-4 space-y-4">
+        <div className="px-4 py-4 space-y-4 select-text">
           <p className="text-xs text-zinc-500 italic">{pivotPlan.pivotTrigger}</p>
 
           <div className="space-y-3">

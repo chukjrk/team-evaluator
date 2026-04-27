@@ -1,15 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { ClipboardList, BarChart2, NotebookPen } from "lucide-react";
+import { ClipboardList, BarChart2, NotebookPen, TrendingUp } from "lucide-react";
 import { IdeaForm } from "@/components/ideas/IdeaForm";
 import { EvaluationPanel } from "@/components/evaluation/EvaluationPanel";
 import { ValidationPlanTab } from "@/components/evaluation/ValidationPlanTab";
 import { ValidationNotesTab } from "@/components/evaluation/ValidationNotesTab";
+import { MarketResearchTab } from "@/components/evaluation/MarketResearchTab";
 import { cn } from "@/lib/utils";
 import type { IdeaData } from "@/lib/types/idea";
 
-type RightTab = "evaluation" | "validation" | "notes";
+type RightTab = "evaluation" | "validation" | "notes" | "market-research";
 
 interface RightPanelProps {
   idea: IdeaData | null;
@@ -52,6 +53,7 @@ export function RightPanel({
     { id: "evaluation", label: "Evaluation", icon: <BarChart2 className="h-3.5 w-3.5" /> },
     { id: "validation", label: "Validation Plan", icon: <ClipboardList className="h-3.5 w-3.5" /> },
     { id: "notes", label: "Validation Notes", icon: <NotebookPen className="h-3.5 w-3.5" /> },
+    { id: "market-research", label: "Market Research", icon: <TrendingUp className="h-3.5 w-3.5" /> },
   ];
 
   return (
@@ -103,6 +105,10 @@ export function RightPanel({
           onIdeaUpdated={onIdeaUpdated}
           onReevalComplete={() => setActiveTab("evaluation")}
         />
+      )}
+
+      {activeTab === "market-research" && (
+        <MarketResearchTab idea={idea} onIdeaUpdated={onIdeaUpdated} />
       )}
 
       <IdeaForm
