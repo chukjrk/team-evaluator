@@ -138,7 +138,7 @@ export function AppShell({ currentMemberId }: AppShellProps) {
       <div className="hidden lg:flex h-screen overflow-hidden select-none">
         {/* Left panel */}
         {!leftCollapsed && (
-          <div style={{ width: leftWidth, minWidth: leftWidth, maxWidth: leftWidth }} className="flex-shrink-0">
+          <div style={{ width: leftWidth, minWidth: leftWidth, maxWidth: leftWidth }} className="shrink-0">
             <LeftPanel onCollapse={() => setLeftCollapsed(true)} />
           </div>
         )}
@@ -147,7 +147,7 @@ export function AppShell({ currentMemberId }: AppShellProps) {
         {!leftCollapsed && (
           <div
             onMouseDown={onLeftMouseDown}
-            className="group w-1.5 flex-shrink-0 cursor-col-resize bg-zinc-100 hover:bg-zinc-300 active:bg-violet-400 transition-colors"
+            className="group w-1.5 shrink-0 cursor-col-resize bg-zinc-100 hover:bg-zinc-300 active:bg-violet-400 transition-colors"
             title="Drag to resize"
           >
             <div className="h-full w-full group-hover:opacity-100 opacity-0 flex items-center justify-center">
@@ -160,7 +160,7 @@ export function AppShell({ currentMemberId }: AppShellProps) {
         {leftCollapsed && (
           <button
             onClick={() => setLeftCollapsed(false)}
-            className="flex-shrink-0 w-8 flex flex-col items-center justify-start pt-3 border-r border-zinc-200 bg-white hover:bg-zinc-50 transition-colors"
+            className="shrink-0 w-8 flex flex-col items-center justify-start pt-3 border-r border-zinc-200 bg-white hover:bg-zinc-50 transition-colors"
             title="Expand panel"
           >
             <ChevronRight className="h-4 w-4 text-zinc-400" />
@@ -180,7 +180,7 @@ export function AppShell({ currentMemberId }: AppShellProps) {
         {/* Right resize handle */}
         <div
           onMouseDown={onRightMouseDown}
-          className="group w-1.5 flex-shrink-0 cursor-col-resize bg-zinc-100 hover:bg-zinc-300 active:bg-violet-400 transition-colors"
+          className="group w-1.5 shrink-0 cursor-col-resize bg-zinc-100 hover:bg-zinc-300 active:bg-violet-400 transition-colors"
           title="Drag to resize"
         >
           <div className="h-full w-full group-hover:opacity-100 opacity-0 flex items-center justify-center">
@@ -189,7 +189,7 @@ export function AppShell({ currentMemberId }: AppShellProps) {
         </div>
 
         {/* Right panel */}
-        <div style={{ width: rightWidth, minWidth: rightWidth, maxWidth: rightWidth }} className="flex-shrink-0">
+        <div style={{ width: rightWidth, minWidth: rightWidth, maxWidth: rightWidth }} className="shrink-0">
           <RightPanel
             key={selectedIdea?.id}
             idea={selectedIdea}
